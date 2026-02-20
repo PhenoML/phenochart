@@ -1,0 +1,30 @@
+{
+  "name": "phenochart",
+  "description": "AI-powered medical code extraction from clinical narratives",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "wxt dev",
+    "build": "wxt build",
+    "check": "tsc --noEmit",
+    "clean": "rm -rf .output dist node_modules/.cache",
+    "postinstall": "wxt prepare"
+  },
+  "dependencies": {
+    "clsx": "^2.1.1",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "tailwind-merge": "^3.0.2"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.1.4",
+    "@types/react": "^19.2.13",
+    "@types/react-dom": "^19.2.3",
+    "@wxt-dev/module-react": "^1.1.5",
+    "tailwindcss": "^4.1.4",
+    "tw-animate-css": "^1.2.9",
+    "typescript": "^5.9.3",
+    "wxt": "^0.20.17"
+  }
+}
