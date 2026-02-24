@@ -12,6 +12,7 @@ export default defineConfig({
     description: 'AI-powered medical code extraction from clinical narratives',
     version: '0.1.0',
     permissions: ['sidePanel', 'activeTab', 'storage'],
+    host_permissions: ['https://*.pheno.ml/*'],
     icons: {
       16: 'icons/16.png',
       32: 'icons/32.png',
