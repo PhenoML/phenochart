@@ -1,4 +1,4 @@
-import type { ExtractedCode } from '../types';
+import type { ExtractedCode, CodeSystem } from '../types';
 import { getConfig, type PhenoConfig } from './config';
 
 const TOKEN_KEY = 'phenoml_jwt';
@@ -22,7 +22,17 @@ interface ConstrueApiResponse {
   codes: ConstrueApiCode[];
 }
 
-async function getToken(config: PhenoConfig): Promise<string> {
+const SYSTEM_CONFIGS: Record<CodeSystem, { name: string; version: string; validationMethod: string }> = {
+  'ICD-10-CM':       { name: 'ICD-10-CM',       version: '2025',     validationMethod: 'simple' },
+  'ICD-10-PCS':      { name: 'ICD-10-PCS',      version: '2025',     validationMethod: 'simple' },
+  'RXNORM':          { name: 'RXNORM',           version: '11042024', validationMethod: 'medication_search' },
+  'LOINC':           { name: 'LOINC',            version: '2.78',     validationMethod: 'simple' },
+  'HPO':             { name: 'HPO',              version: '2025',     validationMethod: 'simple' },
+  'CPT':             { name: 'CPT',              version: '2025',     validationMethod: 'simple' },
+  'SNOMED_CT_US_LITE': { name: 'SNOMED_CT_US_LITE', version: '20240901', validationMethod: 'simple' },
+};
+
+export async function getToken(config: PhenoConfig): Promise<string> {
   const result = await browser.storage.session.get(TOKEN_KEY);
   const stored = result[TOKEN_KEY] as StoredToken | undefined;
 
@@ -51,14 +61,9 @@ async function callExtract(
   config: PhenoConfig,
   token: string,
   text: string,
-  system: 'ICD-10-CM' | 'RXNORM',
+  system: CodeSystem,
 ): Promise<ConstrueApiResponse> {
-  const systemConfig =
-    system === 'ICD-10-CM'
-      ? { name: 'ICD-10-CM', version: '2025' }
-      : { name: 'RXNORM', version: '11042024' };
-
-  const validationMethod = system === 'ICD-10-CM' ? 'simple' : 'medication_search';
+  const { name, version, validationMethod } = SYSTEM_CONFIGS[system];
 
   const response = await fetch(`${config.instanceUrl}/construe/extract`, {
     method: 'POST',
@@ -69,7 +74,7 @@ async function callExtract(
     },
     body: JSON.stringify({
       text,
-      system: systemConfig,
+      system: { name, version },
       config: {
         chunking_method: 'sentences',
         code_similarity_filter: 0.9,
@@ -87,11 +92,7 @@ async function callExtract(
   return response.json() as Promise<ConstrueApiResponse>;
 }
 
-function normalizeCode(
-  apiCode: ConstrueApiCode,
-  system: 'ICD-10-CM' | 'RXNORM',
-  index: number,
-): ExtractedCode {
+function normalizeCode(apiCode: ConstrueApiCode, system: CodeSystem, index: number): ExtractedCode {
   return {
     id: `code-${system.toLowerCase()}-${index}`,
     code: apiCode.code,
@@ -110,13 +111,11 @@ export async function extractCodes(narrative: string): Promise<ExtractedCode[]> 
   }
   const token = await getToken(config);
 
-  const [icdResponse, rxResponse] = await Promise.all([
-    callExtract(config, token, narrative, 'ICD-10-CM'),
-    callExtract(config, token, narrative, 'RXNORM'),
-  ]);
+  const responses = await Promise.all(
+    config.codeSystems.map((system) => callExtract(config, token, narrative, system)),
+  );
 
-  const conditions = icdResponse.codes.map((c, i) => normalizeCode(c, 'ICD-10-CM', i));
-  const medications = rxResponse.codes.map((c, i) => normalizeCode(c, 'RXNORM', i));
-
-  return [...conditions, ...medications];
+  return config.codeSystems.flatMap((system, i) =>
+    responses[i].codes.map((c, j) => normalizeCode(c, system, j)),
+  );
 }

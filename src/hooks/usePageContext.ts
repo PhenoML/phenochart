@@ -4,12 +4,16 @@ interface PageContext {
   url: string;
   isEncounterPage: boolean;
   isMedPlum: boolean;
+  patientId: string | null;
+  encounterId: string | null;
 }
 
 const DEFAULT_CONTEXT: PageContext = {
   url: '',
   isEncounterPage: false,
   isMedPlum: false,
+  patientId: null,
+  encounterId: null,
 };
 
 function parsePageContext(value: unknown): PageContext | null {
@@ -20,7 +24,13 @@ function parsePageContext(value: unknown): PageContext | null {
     typeof obj.isEncounterPage === 'boolean' &&
     typeof obj.isMedPlum === 'boolean'
   ) {
-    return { url: obj.url, isEncounterPage: obj.isEncounterPage, isMedPlum: obj.isMedPlum };
+    return {
+      url: obj.url,
+      isEncounterPage: obj.isEncounterPage,
+      isMedPlum: obj.isMedPlum,
+      patientId: typeof obj.patientId === 'string' ? obj.patientId : null,
+      encounterId: typeof obj.encounterId === 'string' ? obj.encounterId : null,
+    };
   }
   return null;
 }

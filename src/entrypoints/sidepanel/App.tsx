@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { AppProvider, useApp } from '../../context/AppContext';
 import { ErrorBoundary } from '../../components/ErrorBoundary';
 import { IdlePrompt } from '../../components/IdlePrompt';
@@ -10,6 +11,7 @@ import { CodeCardAccepted } from '../../components/CodeCardAccepted';
 import { CodeCardRejected } from '../../components/CodeCardRejected';
 import { ReviewFooter } from '../../components/ReviewFooter';
 import { SubmissionSummary } from '../../components/SubmissionSummary';
+import { SettingsDrawer } from '../../components/SettingsDrawer';
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
 
 function ReviewState() {
@@ -80,22 +82,32 @@ function ErrorState() {
 
 function AppContent() {
   const { state, error } = useApp();
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   useKeyboardShortcuts();
+
+  const openSettings = () => setIsSettingsOpen(true);
+  const closeSettings = () => setIsSettingsOpen(false);
 
   if (state === 'error') {
     return <ErrorState />;
   }
 
   if (state === 'idle') {
-    return <IdlePrompt />;
+    return (
+      <>
+        <IdlePrompt onOpenSettings={openSettings} />
+        <SettingsDrawer isOpen={isSettingsOpen} onClose={closeSettings} />
+      </>
+    );
   }
 
   if (state === 'loading') {
     return (
       <div className="min-h-screen bg-pheno-bg">
-        <PatientContextBar />
+        <PatientContextBar onOpenSettings={openSettings} />
         <EncounterNarrative />
         <LoadingState />
+        <SettingsDrawer isOpen={isSettingsOpen} onClose={closeSettings} />
       </div>
     );
   }
@@ -103,8 +115,9 @@ function AppContent() {
   if (state === 'submitting') {
     return (
       <div className="min-h-screen bg-pheno-bg">
-        <PatientContextBar />
+        <PatientContextBar onOpenSettings={openSettings} />
         <SubmittingOverlay />
+        <SettingsDrawer isOpen={isSettingsOpen} onClose={closeSettings} />
       </div>
     );
   }
@@ -112,15 +125,16 @@ function AppContent() {
   if (state === 'submitted') {
     return (
       <div className="min-h-screen bg-pheno-bg">
-        <PatientContextBar />
+        <PatientContextBar onOpenSettings={openSettings} />
         <SubmissionSummary />
+        <SettingsDrawer isOpen={isSettingsOpen} onClose={closeSettings} />
       </div>
     );
   }
 
   return (
     <div className="flex min-h-screen flex-col bg-pheno-bg">
-      <PatientContextBar />
+      <PatientContextBar onOpenSettings={openSettings} />
       <EncounterNarrative />
       {error && (
         <div className="border-b border-pheno-reject/20 bg-pheno-reject/5 px-4 py-2">
@@ -131,6 +145,7 @@ function AppContent() {
         <ReviewState />
       </div>
       <ReviewFooter />
+      <SettingsDrawer isOpen={isSettingsOpen} onClose={closeSettings} />
     </div>
   );
 }

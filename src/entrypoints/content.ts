@@ -8,13 +8,18 @@ export default defineContentScript({
     if ((window as unknown as Record<string, unknown>).__phenochart_injected) return;
     (window as unknown as Record<string, unknown>).__phenochart_injected = true;
 
+    const ENCOUNTER_URL_RE = /\/Patient\/(?<patientId>[a-f0-9-]+)\/Encounter\/(?<encounterId>[a-f0-9-]+)/i;
+
     const checkUrl = () => {
       const url = window.location.href;
+      const match = url.match(ENCOUNTER_URL_RE);
       browser.storage.local.set({
         pageContext: {
           url,
-          isEncounterPage: /\/Encounter\//.test(url),
+          isEncounterPage: match !== null,
           isMedPlum: true,
+          patientId: match?.groups?.patientId ?? null,
+          encounterId: match?.groups?.encounterId ?? null,
         },
       }).catch(() => {
         // Extension context may be invalidated after update/reload

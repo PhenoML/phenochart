@@ -4,10 +4,19 @@ export interface Citation {
   end_offset: number;
 }
 
+export type CodeSystem =
+  | 'ICD-10-CM'
+  | 'ICD-10-PCS'
+  | 'RXNORM'
+  | 'LOINC'
+  | 'HPO'
+  | 'CPT'
+  | 'SNOMED_CT_US_LITE';
+
 export interface ExtractedCode {
   id: string;
   code: string;
-  system: 'ICD-10-CM' | 'RXNORM';
+  system: CodeSystem;
   description: string;
   reason: string;
   valid: boolean;
