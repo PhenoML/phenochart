@@ -26,6 +26,12 @@ type Action =
       decision: ReviewDecision;
       comment?: string;
     }
+  | {
+      type: 'BULK_REVIEW';
+      codeIds: string[];
+      decision: 'accepted' | 'rejected';
+      comment?: string;
+    }
   | { type: 'SUBMIT' }
   | { type: 'SUBMISSION_COMPLETE'; result: SubmissionResult }
   | { type: 'SUBMISSION_FAILED'; error: string }
@@ -68,6 +74,20 @@ function reducer(state: State, action: Action): State {
         comment: action.comment,
         reviewedAt: new Date().toISOString(),
       });
+      return { ...state, reviews };
+    }
+
+    case 'BULK_REVIEW': {
+      const reviews = new Map(state.reviews);
+      const reviewedAt = new Date().toISOString();
+      for (const codeId of action.codeIds) {
+        reviews.set(codeId, {
+          codeId,
+          decision: action.decision,
+          comment: action.comment,
+          reviewedAt,
+        });
+      }
       return { ...state, reviews };
     }
 

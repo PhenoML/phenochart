@@ -6,9 +6,11 @@ import type { ExtractedCode } from '../types';
 interface CodeCardProps {
   code: ExtractedCode;
   index: number;
+  selected?: boolean;
+  onToggle?: () => void;
 }
 
-export function CodeCard({ code, index }: CodeCardProps) {
+export function CodeCard({ code, index, selected = false, onToggle }: CodeCardProps) {
   const { dispatch } = useApp();
   const [rejecting, setRejecting] = useState(false);
 
@@ -50,12 +52,23 @@ export function CodeCard({ code, index }: CodeCardProps) {
 
   return (
     <div
+      role="article"
       tabIndex={0}
       onKeyDown={handleKeyDown}
       className={`border-b border-pheno-border bg-pheno-bg-panel px-4 py-3 animate-in fade-in duration-300 outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-pheno-focus-ring ${rejecting ? 'border-l-[3px] border-l-pheno-reject' : ''}`}
       style={{ animationDelay: `${index * 50}ms`, animationFillMode: 'both' }}
     >
-      <div className="mb-1">
+      <div className="mb-1 flex items-center gap-2">
+        {onToggle && (
+          <input
+            type="checkbox"
+            checked={selected}
+            onChange={onToggle}
+            onClick={(e) => e.stopPropagation()}
+            aria-label={`Select ${code.code}`}
+            className="h-3.5 w-3.5 shrink-0 cursor-pointer accent-pheno-accent"
+          />
+        )}
         <span className="font-mono text-xs text-pheno-text-tertiary">
           {code.code}
         </span>

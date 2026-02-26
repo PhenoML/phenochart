@@ -1,4 +1,18 @@
+import { useState, useEffect } from 'react';
+import { getConfig } from '../lib/config';
+import type { CodeSystem } from '../types';
+
 export function LoadingState() {
+  const [codeSystems, setCodeSystems] = useState<CodeSystem[]>([]);
+
+  useEffect(() => {
+    getConfig().then((config) => {
+      if (config?.codeSystems?.length) {
+        setCodeSystems(config.codeSystems);
+      }
+    });
+  }, []);
+
   return (
     <div className="flex flex-col items-center gap-4 px-4 py-8">
       {/* Progress bar */}
@@ -14,9 +28,11 @@ export function LoadingState() {
         <p className="font-body text-sm text-pheno-text-secondary">
           Extracting codes&hellip;
         </p>
-        <p className="font-mono text-xs text-pheno-text-tertiary">
-          ICD-10-CM &middot; RXNORM
-        </p>
+        {codeSystems.length > 0 && (
+          <p className="font-mono text-xs text-pheno-text-tertiary">
+            {codeSystems.join(' \u00b7 ')}
+          </p>
+        )}
       </div>
     </div>
   );

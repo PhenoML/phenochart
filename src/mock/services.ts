@@ -1,5 +1,4 @@
 import { mockEncounter } from './encounter';
-import { mockCodes } from './codes';
 import type {
   Encounter,
   ExtractedCode,
@@ -20,6 +19,7 @@ export async function fetchEncounter(): Promise<Encounter> {
 
 // Simulate FHIR write-back — returns result after 400ms
 export async function submitCodes(
+  codes: ExtractedCode[],
   encounterRef: string,
   reviews: Map<string, CodeReview>,
 ): Promise<SubmissionResult> {
@@ -29,7 +29,7 @@ export async function submitCodes(
   const rejected: Array<{ code: ExtractedCode; comment?: string }> = [];
 
   for (const [codeId, review] of reviews) {
-    const code = mockCodes.find((c) => c.id === codeId);
+    const code = codes.find((c) => c.id === codeId);
     if (!code) {
       console.warn(`submitCodes: review for unknown code ID "${codeId}" was skipped`);
       continue;
@@ -47,5 +47,6 @@ export async function submitCodes(
     submittedAt: new Date().toISOString(),
     accepted,
     rejected,
+    mode: 'demo',
   };
 }

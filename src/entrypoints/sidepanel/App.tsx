@@ -14,7 +14,12 @@ import { SubmissionSummary } from '../../components/SubmissionSummary';
 import { SettingsDrawer } from '../../components/SettingsDrawer';
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
 
-function ReviewState() {
+interface ReviewStateProps {
+  selection: Set<string>;
+  onToggle: (id: string) => void;
+}
+
+function ReviewState({ selection, onToggle }: ReviewStateProps) {
   const { codes, reviews } = useApp();
 
   const conditions = codes.filter((c) => c.system === 'ICD-10-CM');
@@ -23,7 +28,15 @@ function ReviewState() {
   function renderCard(code: (typeof codes)[0], index: number) {
     const review = reviews.get(code.id);
     if (!review || review.decision === 'pending') {
-      return <CodeCard key={code.id} code={code} index={index} />;
+      return (
+        <CodeCard
+          key={code.id}
+          code={code}
+          index={index}
+          selected={selection.has(code.id)}
+          onToggle={() => onToggle(code.id)}
+        />
+      );
     }
     if (review.decision === 'accepted') {
       return <CodeCardAccepted key={code.id} code={code} />;
@@ -83,10 +96,27 @@ function ErrorState() {
 function AppContent() {
   const { state, error } = useApp();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [selection, setSelection] = useState<Set<string>>(new Set());
   useKeyboardShortcuts();
 
   const openSettings = () => setIsSettingsOpen(true);
   const closeSettings = () => setIsSettingsOpen(false);
+
+  function handleToggle(id: string) {
+    setSelection((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  }
+
+  function handleSelectAll(ids: string[]) {
+    setSelection(new Set(ids));
+  }
+
+  function handleClearSelection() {
+    setSelection(new Set());
+  }
 
   if (state === 'error') {
     return <ErrorState />;
@@ -142,9 +172,13 @@ function AppContent() {
         </div>
       )}
       <div className="flex-1">
-        <ReviewState />
+        <ReviewState selection={selection} onToggle={handleToggle} />
       </div>
-      <ReviewFooter />
+      <ReviewFooter
+        selection={selection}
+        onSelectAll={handleSelectAll}
+        onClearSelection={handleClearSelection}
+      />
       <SettingsDrawer isOpen={isSettingsOpen} onClose={closeSettings} />
     </div>
   );

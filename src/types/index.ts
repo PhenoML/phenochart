@@ -33,6 +33,8 @@ export interface Encounter {
   date: string;
   type: string;
   narrative: string;
+  existingCodes: string[];               // codes already linked to this encounter
+  problemListCodes: Record<string, string>; // code → Condition ID for all patient conditions
 }
 
 export type ReviewDecision = 'pending' | 'accepted' | 'rejected';
@@ -49,6 +51,8 @@ export interface SubmissionResult {
   submittedAt: string;
   accepted: ExtractedCode[];
   rejected: Array<{ code: ExtractedCode; comment?: string }>;
+  mode: 'demo' | 'ehr';   // Persisted at submission time; drives SubmissionSummary banners
+  notice?: string;         // User-facing message for partial EHR write failures
 }
 
 export type AppState = 'idle' | 'loading' | 'review' | 'submitting' | 'submitted' | 'error';

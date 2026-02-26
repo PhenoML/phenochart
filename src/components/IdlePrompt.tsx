@@ -40,7 +40,9 @@ export function IdlePrompt({ onOpenSettings }: Props) {
           : await fetchEncounter();
       dispatch({ type: 'LOAD_ENCOUNTER', encounter });
       const codes = encounter.narrative.trim()
-        ? await extractCodes(encounter.narrative)
+        ? (await extractCodes(encounter.narrative)).filter(
+            (c) => !encounter.existingCodes.includes(c.code),
+          )
         : [];
       dispatch({ type: 'CODES_EXTRACTED', codes });
     } catch (error) {

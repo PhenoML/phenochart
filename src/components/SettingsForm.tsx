@@ -19,8 +19,8 @@ interface Props {
 
 export function SettingsForm({ onClose }: Props) {
   const [instanceUrl, setInstanceUrl] = useState('https://experiment.app.pheno.ml');
-  const [clientId, setClientId] = useState('');
-  const [clientSecret, setClientSecret] = useState('');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
   const [fhirProviderId, setFhirProviderId] = useState('');
   const [codeSystems, setCodeSystems] = useState<CodeSystem[]>(DEFAULT_CODE_SYSTEMS);
   const [status, setStatus] = useState<'idle' | 'saved' | 'error'>('idle');
@@ -29,8 +29,8 @@ export function SettingsForm({ onClose }: Props) {
     getConfig().then((config) => {
       if (config) {
         setInstanceUrl(config.instanceUrl);
-        setClientId(config.clientId);
-        setClientSecret(config.clientSecret);
+        setUsername(config.username);
+        setPassword(config.password);
         setFhirProviderId(config.fhirProviderId);
         setCodeSystems(config.codeSystems);
       }
@@ -46,9 +46,8 @@ export function SettingsForm({ onClose }: Props) {
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
     try {
-      await saveConfig({ instanceUrl, clientId, clientSecret, fhirProviderId, codeSystems });
-      setStatus('saved');
-      setTimeout(() => setStatus('idle'), 2000);
+      await saveConfig({ instanceUrl, username, password, fhirProviderId, codeSystems });
+      onClose?.();
     } catch {
       setStatus('error');
     }
@@ -56,8 +55,8 @@ export function SettingsForm({ onClose }: Props) {
 
   const canSave =
     instanceUrl.trim() &&
-    clientId.trim() &&
-    clientSecret.trim() &&
+    username.trim() &&
+    password.trim() &&
     fhirProviderId.trim() &&
     codeSystems.length > 0;
 
@@ -105,24 +104,24 @@ export function SettingsForm({ onClose }: Props) {
 
           <label className="flex flex-col gap-1.5">
             <span className="font-body text-sm font-medium text-pheno-text-primary">
-              Client ID
+              Username
             </span>
             <input
               type="text"
-              value={clientId}
-              onChange={(e) => setClientId(e.target.value)}
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
               className="rounded-md border border-pheno-border bg-pheno-bg-panel px-3 py-2 font-mono text-sm text-pheno-text-primary placeholder:text-pheno-text-tertiary focus:outline-none focus:ring-2 focus:ring-pheno-focus-ring"
             />
           </label>
 
           <label className="flex flex-col gap-1.5">
             <span className="font-body text-sm font-medium text-pheno-text-primary">
-              Client Secret
+              Password
             </span>
             <input
               type="password"
-              value={clientSecret}
-              onChange={(e) => setClientSecret(e.target.value)}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
               className="rounded-md border border-pheno-border bg-pheno-bg-panel px-3 py-2 font-mono text-sm text-pheno-text-primary placeholder:text-pheno-text-tertiary focus:outline-none focus:ring-2 focus:ring-pheno-focus-ring"
             />
           </label>
@@ -169,12 +168,9 @@ export function SettingsForm({ onClose }: Props) {
             disabled={!canSave}
             className="mt-2 rounded-md bg-pheno-accent px-6 py-2.5 font-body text-sm font-medium text-white transition-colors hover:bg-pheno-accent/90 disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pheno-focus-ring"
           >
-            Save Credentials
+            Save
           </button>
 
-          {status === 'saved' && (
-            <p className="font-body text-sm text-pheno-accent">Credentials saved.</p>
-          )}
           {status === 'error' && (
             <p className="font-body text-sm text-pheno-reject">Failed to save. Please try again.</p>
           )}

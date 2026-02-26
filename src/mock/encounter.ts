@@ -33,4 +33,6 @@ export const mockEncounter: Encounter = {
   date: '2026-02-15',
   type: 'Office Visit Level 3',
   narrative: mockNarrative,
+  existingCodes: [],
+  problemListCodes: {},
 };

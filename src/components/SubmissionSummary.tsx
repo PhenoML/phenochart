@@ -19,6 +19,22 @@ export function SubmissionSummary() {
 
   return (
     <div className="animate-in fade-in duration-300">
+      {/* Demo mode banner */}
+      {submission.mode === 'demo' && (
+        <div className="border-b border-pheno-border bg-pheno-bg-panel px-4 py-2">
+          <p className="font-body text-xs text-pheno-text-secondary">
+            Demo mode — no data was written to any EHR.
+          </p>
+        </div>
+      )}
+
+      {/* Partial write failure notice */}
+      {submission.notice && (
+        <div className="border-b border-pheno-reject/20 bg-pheno-reject/5 px-4 py-2">
+          <p className="font-body text-xs text-pheno-reject">{submission.notice}</p>
+        </div>
+      )}
+
       {/* Diamond icon + heading */}
       <div className="flex flex-col items-center px-4 pt-8 pb-4">
         <span className="mb-3 text-3xl animate-in zoom-in duration-400">
