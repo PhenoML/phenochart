@@ -6,6 +6,7 @@ export interface ChatMessage {
   content: string;
   timestamp: string;
   isStreaming?: boolean;
+  fhirJson?: string;
 }
 
 export interface AgentInfo {
@@ -20,7 +21,6 @@ export type ChatPhase =
   | 'capturing'
   | 'preview'
   | 'extracting_fhir'
-  | 'summarizing'
   | 'chatting'
   | 'error';
 
@@ -30,12 +30,34 @@ export interface FhirBundle {
   entry: Array<{ resource: Record<string, unknown> }>;
 }
 
+export type TaskStatus =
+  | 'extracting_fhir'
+  | 'chatting'
+  | 'completed'
+  | 'error';
+
+export interface BackgroundTask {
+  id: string;
+  status: TaskStatus;
+  agentId: string;
+  agentName: string;
+  userPrompt: string;
+  sourceUrl: string;
+  screenshotDataUrl: string | null;
+  screenshotBase64: string | null;
+  fhirBundle: FhirBundle | null;
+  messages: ChatMessage[];
+  sessionId: string | null;
+  error: string | null;
+  createdAt: string;
+  completedAt: string | null;
+}
+
 export interface ChatState {
   phase: ChatPhase;
   screenshotDataUrl: string | null;
   screenshotBase64: string | null;
   fhirBundle: FhirBundle | null;
-  clinicalSummary: string | null;
   messages: ChatMessage[];
   isStreaming: boolean;
   sessionId: string | null;

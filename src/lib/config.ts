@@ -42,5 +42,6 @@ export function createClient(config: PhenoConfig): PhenoMLClient {
     username: config.username,
     password: config.password,
     baseUrl: config.instanceUrl,
-  });
+    timeoutInSeconds: 120,
+  } as PhenoMLClient.Options & { timeoutInSeconds: number });
 }

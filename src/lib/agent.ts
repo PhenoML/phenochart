@@ -33,22 +33,6 @@ export async function extractFhirResources(base64Image: string): Promise<FhirBun
   };
 }
 
-export async function createSummary(fhirBundle: FhirBundle): Promise<string> {
-  const config = await getConfig();
-  if (!config) throw new Error('PhenoML credentials not configured.');
-  const client = createClient(config);
-
-  const response = await client.summary.create({
-    fhir_resources: fhirBundle as unknown as Parameters<typeof client.summary.create>[0]['fhir_resources'],
-    mode: 'ips',
-  });
-
-  if (!response.summary) {
-    throw new Error('Summary generation returned no content.');
-  }
-  return response.summary;
-}
-
 export async function fetchAgents(): Promise<AgentInfo[]> {
   const config = await getConfig();
   if (!config) throw new Error('PhenoML credentials not configured.');
@@ -98,4 +82,27 @@ export async function* streamAgentChat(
       sessionId: event.session_id,
     };
   }
+}
+
+/**
+ * Non-streaming variant: consumes the full agent stream and returns the
+ * accumulated response. Used by the background service worker where there
+ * is no React state to stream deltas into.
+ */
+export async function sendAgentChat(
+  options: Omit<StreamChatOptions, 'signal'>,
+): Promise<{ content: string; sessionId: string | null }> {
+  let content = '';
+  let sessionId: string | null = null;
+
+  for await (const event of streamAgentChat(options)) {
+    if (event.type === 'message_start' && event.sessionId) {
+      sessionId = event.sessionId;
+    }
+    if (event.type === 'content_delta' && event.content) {
+      content += event.content;
+    }
+  }
+
+  return { content, sessionId };
 }

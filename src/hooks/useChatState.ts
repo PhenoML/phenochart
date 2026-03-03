@@ -8,13 +8,13 @@ type Action =
   | { type: 'CONFIRM_SCREENSHOT' }
   | { type: 'RETAKE' }
   | { type: 'FHIR_EXTRACTED'; bundle: FhirBundle }
-  | { type: 'SUMMARY_CREATED'; summary: string }
   | { type: 'ADD_USER_MESSAGE'; id: string; content: string }
   | { type: 'START_STREAM'; messageId: string }
   | { type: 'STREAM_DELTA'; messageId: string; delta: string }
   | { type: 'STREAM_END'; messageId: string }
   | { type: 'SET_SESSION_ID'; sessionId: string }
   | { type: 'SET_ERROR'; error: string }
+  | { type: 'LOAD_TASK'; messages: ChatMessage[]; sessionId: string | null; agentId: string; agentName: string }
   | { type: 'RESET' };
 
 const initialState: ChatState = {
@@ -22,7 +22,6 @@ const initialState: ChatState = {
   screenshotDataUrl: null,
   screenshotBase64: null,
   fhirBundle: null,
-  clinicalSummary: null,
   messages: [],
   isStreaming: false,
   sessionId: null,
@@ -48,10 +47,7 @@ function reducer(state: ChatState, action: Action): ChatState {
       return { ...state, phase: 'idle', screenshotDataUrl: null, screenshotBase64: null };
 
     case 'FHIR_EXTRACTED':
-      return { ...state, phase: 'summarizing', fhirBundle: action.bundle };
-
-    case 'SUMMARY_CREATED':
-      return { ...state, phase: 'chatting', clinicalSummary: action.summary };
+      return { ...state, phase: 'chatting', fhirBundle: action.bundle };
 
     case 'ADD_USER_MESSAGE':
       return {
@@ -102,6 +98,15 @@ function reducer(state: ChatState, action: Action): ChatState {
 
     case 'SET_ERROR':
       return { ...state, phase: 'error', isStreaming: false, error: action.error };
+
+    case 'LOAD_TASK':
+      return {
+        ...initialState,
+        phase: 'chatting',
+        messages: action.messages,
+        sessionId: action.sessionId,
+        selectedAgent: { id: action.agentId, name: action.agentName },
+      };
 
     case 'RESET':
       return initialState;

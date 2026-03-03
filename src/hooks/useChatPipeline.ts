@@ -1,17 +1,19 @@
 import { useRef, useCallback } from 'react';
 import { useChat } from '../context/ChatContext';
 import { usePageContext } from './usePageContext';
-import {
-  captureScreenshot,
-  extractFhirResources,
-  createSummary,
-  streamAgentChat,
-} from '../lib/agent';
+import { captureScreenshot, streamAgentChat } from '../lib/agent';
+import type { BackgroundTask } from '../types/chat';
 
 export function useChatPipeline() {
-  const { dispatch, selectedAgent, sessionId, isStreaming, screenshotBase64 } = useChat();
-  const { patientId } = usePageContext();
+  const { dispatch, selectedAgent, sessionId, isStreaming, screenshotBase64 } =
+    useChat();
+  const { patientId, url: pageUrl } = usePageContext();
   const abortRef = useRef<AbortController | null>(null);
+  const userPromptRef = useRef('');
+
+  const setUserPrompt = useCallback((prompt: string) => {
+    userPromptRef.current = prompt;
+  }, []);
 
   const startPipeline = useCallback(async () => {
     if (!selectedAgent) {
@@ -20,7 +22,7 @@ export function useChatPipeline() {
     }
 
     try {
-      // Step 1: Capture screenshot and show preview
+      // Capture screenshot and show preview
       dispatch({ type: 'START_CAPTURE' });
       const { dataUrl, base64 } = await captureScreenshot();
       dispatch({ type: 'SCREENSHOT_CAPTURED', dataUrl, base64 });
@@ -33,35 +35,50 @@ export function useChatPipeline() {
     }
   }, [selectedAgent, dispatch]);
 
+  /** Fire and forget: delegate extraction + agent chat to the background worker. */
   const confirmScreenshot = useCallback(async () => {
-    if (!selectedAgent) return;
+    if (!selectedAgent || !screenshotBase64) return;
 
-    dispatch({ type: 'CONFIRM_SCREENSHOT' });
+    // Fire and forget — don't await. The background keeps the message
+    // channel open for the full pipeline, but we don't need the response.
+    browser.runtime.sendMessage({
+      type: 'START_PIPELINE',
+      agentId: selectedAgent.id,
+      agentName: selectedAgent.name,
+      userPrompt:
+        userPromptRef.current ||
+        'What can you help with based on this chart?',
+      screenshotBase64,
+      screenshotDataUrl: `data:image/png;base64,${screenshotBase64}`,
+      patientId: patientId ?? undefined,
+      sourceUrl: pageUrl,
+    }).catch(() => {
+      // Background may be restarting; task will still appear via storage
+    });
 
-    try {
-      // Step 2: Parallel FHIR extraction
-      const base64 = screenshotBase64!;
-      const bundle = await extractFhirResources(base64);
-      dispatch({ type: 'FHIR_EXTRACTED', bundle });
-
-      // Step 3: Generate IPS summary
-      const summary = await createSummary(bundle);
-      dispatch({ type: 'SUMMARY_CREATED', summary });
-
-      // Step 4: Auto-send the summary as the first message to the agent
-      const firstMessage = `Here is the clinical summary extracted from the patient's chart:\n\n${summary}\n\nWhat would you like to help with?`;
-      await sendMessageInternal(firstMessage, selectedAgent.id, null);
-    } catch (err) {
-      dispatch({
-        type: 'SET_ERROR',
-        error: err instanceof Error ? err.message : 'Pipeline failed.',
-      });
-    }
-  }, [selectedAgent, screenshotBase64, dispatch]);
+    // Return to idle immediately
+    dispatch({ type: 'RESET' });
+  }, [selectedAgent, screenshotBase64, patientId, pageUrl, dispatch]);
 
   const retakeScreenshot = useCallback(() => {
     dispatch({ type: 'RETAKE' });
   }, [dispatch]);
+
+  /** Load a completed background task into the chat view for follow-ups. */
+  const viewTask = useCallback(
+    (task: BackgroundTask) => {
+      dispatch({
+        type: 'LOAD_TASK',
+        messages: task.messages,
+        sessionId: task.sessionId,
+        agentId: task.agentId,
+        agentName: task.agentName,
+      });
+    },
+    [dispatch],
+  );
+
+  // --- Follow-up streaming (runs directly in the panel) ---
 
   async function sendMessageInternal(
     content: string,
@@ -91,7 +108,10 @@ export function useChatPipeline() {
         switch (event.type) {
           case 'message_start':
             if (event.sessionId) {
-              dispatch({ type: 'SET_SESSION_ID', sessionId: event.sessionId });
+              dispatch({
+                type: 'SET_SESSION_ID',
+                sessionId: event.sessionId,
+              });
             }
             break;
           case 'content_delta':
@@ -135,5 +155,13 @@ export function useChatPipeline() {
     abortRef.current?.abort();
   }, []);
 
-  return { startPipeline, confirmScreenshot, retakeScreenshot, sendMessage, cancelStream };
+  return {
+    startPipeline,
+    confirmScreenshot,
+    retakeScreenshot,
+    sendMessage,
+    cancelStream,
+    viewTask,
+    setUserPrompt,
+  };
 }
