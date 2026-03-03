@@ -10,7 +10,8 @@ A Chrome extension sidecar for chart review, powered by PhenoML's Construe API.
 - Node.js 18+
 - npm
 - Google Chrome
-- PhenoML API access ([sign up](https://console.pheno.ml))
+- Medplum [sign up](https://medplum.com)
+- PhenoML API access [sign up](https://console.pheno.ml)
 
 ### Build
 
@@ -105,3 +106,8 @@ Side Panel (React app)
 ```
 
 The content script detects Medplum EHR pages and writes page context to `browser.storage.local`. The side panel reads this context to determine whether to use real API calls or demo data. In real mode, accepted codes are written back as FHIR resources (Condition, MedicationRequest, Observation, Procedure) via a FHIR bundle.
+
+## Future Enhancements
+- Demo for browser based EHRs
+- Build and run agents in PhenoChart
+- .... tell us what you'd like to see! Feel free to raise a PR or create an issue for a suggested feature!
