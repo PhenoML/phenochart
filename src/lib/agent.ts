@@ -1,17 +1,6 @@
 import type { AgentInfo, FhirBundle } from '../types/chat';
 import { getConfig, createClient } from './config';
 
-const FHIR_RESOURCE_TYPES = [
-  'condition-encounter-diagnosis',
-  'condition-problems-health-concerns',
-  'medicationrequest',
-  'observation-clinical-result',
-  'observation-lab',
-  'procedure',
-  'patient',
-  'vital-signs',
-] as const;
-
 export async function captureScreenshot(): Promise<{ dataUrl: string; base64: string }> {
   const response = await browser.runtime.sendMessage({ type: 'CAPTURE_TAB' });
   if (!response?.dataUrl) {
@@ -27,31 +16,21 @@ export async function extractFhirResources(base64Image: string): Promise<FhirBun
   if (!config) throw new Error('PhenoML credentials not configured.');
   const client = createClient(config);
 
-  const results = await Promise.allSettled(
-    FHIR_RESOURCE_TYPES.map((resource) =>
-      client.lang2Fhir.document({
-        version: 'R4',
-        resource: resource as unknown,
-        content: base64Image,
-      } as Parameters<typeof client.lang2Fhir.document>[0]),
-    ),
-  );
+  const response = await client.lang2Fhir.extractMultipleFhirResourcesFromADocument({
+    version: 'R4',
+    content: base64Image,
+  });
 
-  const entries: FhirBundle['entry'] = [];
-  for (const result of results) {
-    if (result.status === 'fulfilled' && result.value) {
-      const resource = result.value as Record<string, unknown>;
-      if (resource.resourceType) {
-        entries.push({ resource });
-      }
-    }
-  }
-
+  const entries = response.bundle?.entry ?? [];
   if (entries.length === 0) {
     throw new Error('No FHIR resources could be extracted from the screenshot.');
   }
 
-  return { resourceType: 'Bundle', type: 'collection', entry: entries };
+  return {
+    resourceType: 'Bundle',
+    type: 'collection',
+    entry: entries.map((e) => ({ resource: e.resource ?? {} })),
+  };
 }
 
 export async function createSummary(fhirBundle: FhirBundle): Promise<string> {
