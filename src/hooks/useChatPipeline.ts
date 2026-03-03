@@ -9,7 +9,7 @@ import {
 } from '../lib/agent';
 
 export function useChatPipeline() {
-  const { dispatch, selectedAgent, sessionId, isStreaming } = useChat();
+  const { dispatch, selectedAgent, sessionId, isStreaming, screenshotBase64 } = useChat();
   const { patientId } = usePageContext();
   const abortRef = useRef<AbortController | null>(null);
 
@@ -20,12 +20,27 @@ export function useChatPipeline() {
     }
 
     try {
-      // Step 1: Capture screenshot
+      // Step 1: Capture screenshot and show preview
       dispatch({ type: 'START_CAPTURE' });
-      const base64 = await captureScreenshot();
-      dispatch({ type: 'SCREENSHOT_CAPTURED', base64 });
+      const { dataUrl, base64 } = await captureScreenshot();
+      dispatch({ type: 'SCREENSHOT_CAPTURED', dataUrl, base64 });
+      // Pipeline pauses here — user must confirm or retake
+    } catch (err) {
+      dispatch({
+        type: 'SET_ERROR',
+        error: err instanceof Error ? err.message : 'Pipeline failed.',
+      });
+    }
+  }, [selectedAgent, dispatch]);
 
+  const confirmScreenshot = useCallback(async () => {
+    if (!selectedAgent) return;
+
+    dispatch({ type: 'CONFIRM_SCREENSHOT' });
+
+    try {
       // Step 2: Parallel FHIR extraction
+      const base64 = screenshotBase64!;
       const bundle = await extractFhirResources(base64);
       dispatch({ type: 'FHIR_EXTRACTED', bundle });
 
@@ -42,7 +57,11 @@ export function useChatPipeline() {
         error: err instanceof Error ? err.message : 'Pipeline failed.',
       });
     }
-  }, [selectedAgent, dispatch]);
+  }, [selectedAgent, screenshotBase64, dispatch]);
+
+  const retakeScreenshot = useCallback(() => {
+    dispatch({ type: 'RETAKE' });
+  }, [dispatch]);
 
   async function sendMessageInternal(
     content: string,
@@ -116,5 +135,5 @@ export function useChatPipeline() {
     abortRef.current?.abort();
   }, []);
 
-  return { startPipeline, sendMessage, cancelStream };
+  return { startPipeline, confirmScreenshot, retakeScreenshot, sendMessage, cancelStream };
 }

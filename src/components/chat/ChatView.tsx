@@ -13,8 +13,8 @@ interface Props {
 }
 
 export function ChatView({ onOpenSettings }: Props) {
-  const { phase, selectedAgent, isStreaming, messages, error, dispatch } = useChat();
-  const { startPipeline, sendMessage, cancelStream } = useChatPipeline();
+  const { phase, selectedAgent, isStreaming, messages, error, screenshotDataUrl, dispatch } = useChat();
+  const { startPipeline, confirmScreenshot, retakeScreenshot, sendMessage, cancelStream } = useChatPipeline();
 
   // Idle state — agent picker + capture button
   if (phase === 'idle') {
@@ -63,6 +63,33 @@ export function ChatView({ onOpenSettings }: Props) {
           <p className="font-body text-xs text-pheno-text-tertiary">
             Powered by PhenoML Agent API
           </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Preview state — confirm or retake screenshot
+  if (phase === 'preview' && screenshotDataUrl) {
+    return (
+      <div className="flex min-h-screen flex-col gap-4 p-4 bg-pheno-bg">
+        <img
+          src={screenshotDataUrl}
+          alt="Screenshot preview"
+          className="w-full rounded-md border border-pheno-border"
+        />
+        <div className="flex gap-2">
+          <button
+            onClick={retakeScreenshot}
+            className="flex-1 rounded-md border border-pheno-border px-4 py-2 font-body text-sm text-pheno-text-secondary transition-colors hover:bg-pheno-bg-secondary"
+          >
+            Retake
+          </button>
+          <button
+            onClick={confirmScreenshot}
+            className="flex-1 rounded-md bg-pheno-accent px-4 py-2 font-body text-sm font-medium text-white transition-colors hover:bg-pheno-accent/90"
+          >
+            Send
+          </button>
         </div>
       </div>
     );

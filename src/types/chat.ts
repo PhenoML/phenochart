@@ -18,6 +18,7 @@ export interface AgentInfo {
 export type ChatPhase =
   | 'idle'
   | 'capturing'
+  | 'preview'
   | 'extracting_fhir'
   | 'summarizing'
   | 'chatting'
@@ -31,6 +32,7 @@ export interface FhirBundle {
 
 export interface ChatState {
   phase: ChatPhase;
+  screenshotDataUrl: string | null;
   screenshotBase64: string | null;
   fhirBundle: FhirBundle | null;
   clinicalSummary: string | null;

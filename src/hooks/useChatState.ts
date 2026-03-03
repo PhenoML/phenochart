@@ -4,7 +4,9 @@ import type { ChatState, ChatPhase, ChatMessage, AgentInfo, FhirBundle } from '.
 type Action =
   | { type: 'SELECT_AGENT'; agent: AgentInfo }
   | { type: 'START_CAPTURE' }
-  | { type: 'SCREENSHOT_CAPTURED'; base64: string }
+  | { type: 'SCREENSHOT_CAPTURED'; dataUrl: string; base64: string }
+  | { type: 'CONFIRM_SCREENSHOT' }
+  | { type: 'RETAKE' }
   | { type: 'FHIR_EXTRACTED'; bundle: FhirBundle }
   | { type: 'SUMMARY_CREATED'; summary: string }
   | { type: 'ADD_USER_MESSAGE'; id: string; content: string }
@@ -17,6 +19,7 @@ type Action =
 
 const initialState: ChatState = {
   phase: 'idle',
+  screenshotDataUrl: null,
   screenshotBase64: null,
   fhirBundle: null,
   clinicalSummary: null,
@@ -36,7 +39,13 @@ function reducer(state: ChatState, action: Action): ChatState {
       return { ...state, phase: 'capturing', error: null };
 
     case 'SCREENSHOT_CAPTURED':
-      return { ...state, phase: 'extracting_fhir', screenshotBase64: action.base64 };
+      return { ...state, phase: 'preview', screenshotDataUrl: action.dataUrl, screenshotBase64: action.base64 };
+
+    case 'CONFIRM_SCREENSHOT':
+      return { ...state, phase: 'extracting_fhir' };
+
+    case 'RETAKE':
+      return { ...state, phase: 'idle', screenshotDataUrl: null, screenshotBase64: null };
 
     case 'FHIR_EXTRACTED':
       return { ...state, phase: 'summarizing', fhirBundle: action.bundle };

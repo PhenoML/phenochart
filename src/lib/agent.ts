@@ -12,13 +12,14 @@ const FHIR_RESOURCE_TYPES = [
   'vital-signs',
 ] as const;
 
-export async function captureScreenshot(): Promise<string> {
+export async function captureScreenshot(): Promise<{ dataUrl: string; base64: string }> {
   const response = await browser.runtime.sendMessage({ type: 'CAPTURE_TAB' });
   if (!response?.dataUrl) {
     throw new Error('Failed to capture screenshot.');
   }
-  // Strip the data URL prefix to get raw base64
-  return (response.dataUrl as string).replace(/^data:image\/\w+;base64,/, '');
+  const dataUrl = response.dataUrl as string;
+  const base64 = dataUrl.replace(/^data:image\/\w+;base64,/, '');
+  return { dataUrl, base64 };
 }
 
 export async function extractFhirResources(base64Image: string): Promise<FhirBundle> {
