@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { AppProvider, useApp } from '../../context/AppContext';
+import { ChatProvider } from '../../context/ChatContext';
 import { ErrorBoundary } from '../../components/ErrorBoundary';
 import { IdlePrompt } from '../../components/IdlePrompt';
 import { PatientContextBar } from '../../components/PatientContextBar';
@@ -12,6 +13,8 @@ import { CodeCardRejected } from '../../components/CodeCardRejected';
 import { ReviewFooter } from '../../components/ReviewFooter';
 import { SubmissionSummary } from '../../components/SubmissionSummary';
 import { SettingsDrawer } from '../../components/SettingsDrawer';
+import { ModeToggle, type AppMode } from '../../components/ModeToggle';
+import { ChatView } from '../../components/chat/ChatView';
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
 
 interface ReviewStateProps {
@@ -97,6 +100,7 @@ function AppContent() {
   const { state, error } = useApp();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [selection, setSelection] = useState<Set<string>>(new Set());
+  const [mode, setMode] = useState<AppMode>('extraction');
   useKeyboardShortcuts();
 
   const openSettings = () => setIsSettingsOpen(true);
@@ -118,13 +122,25 @@ function AppContent() {
     setSelection(new Set());
   }
 
-  if (state === 'error') {
+  if (state === 'error' && mode === 'extraction') {
     return <ErrorState />;
   }
 
+  // When in idle state, show mode toggle + the active mode's idle screen
   if (state === 'idle') {
+    if (mode === 'chat') {
+      return (
+        <ChatProvider>
+          <ModeToggle mode={mode} onChange={setMode} />
+          <ChatView onOpenSettings={openSettings} />
+          <SettingsDrawer isOpen={isSettingsOpen} onClose={closeSettings} />
+        </ChatProvider>
+      );
+    }
+
     return (
       <>
+        <ModeToggle mode={mode} onChange={setMode} />
         <IdlePrompt onOpenSettings={openSettings} />
         <SettingsDrawer isOpen={isSettingsOpen} onClose={closeSettings} />
       </>

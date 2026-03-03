@@ -36,6 +36,17 @@ export default defineBackground(() => {
     .setPanelBehavior({ openPanelOnActionClick: true })
     .catch((error: Error) => console.error('sidePanel error:', error));
 
+  // Handle screenshot capture requests from the side panel
+  browser.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+    if (message?.type === 'CAPTURE_TAB') {
+      browser.tabs.captureVisibleTab({ format: 'png' }).then(
+        (dataUrl: string) => sendResponse({ dataUrl }),
+        (err: unknown) => sendResponse({ error: String(err) }),
+      );
+      return true; // async response
+    }
+  });
+
   // Track URL when the user switches tabs
   browser.tabs.onActivated.addListener(async ({ tabId }) => {
     try {
