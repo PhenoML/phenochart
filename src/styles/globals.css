@@ -1,0 +1,58 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "./fonts.css";
+
+@theme {
+  --font-display: "Instrument Serif", Georgia, serif;
+  --font-body: "DM Sans", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", monospace;
+
+  --color-pheno-bg: #FAFAF8;
+  --color-pheno-bg-secondary: #F2F0EC;
+  --color-pheno-bg-panel: #FFFFFF;
+  --color-pheno-text-primary: #1A1A18;
+  --color-pheno-text-secondary: #6B6962;
+  --color-pheno-text-tertiary: #9C9890;
+  --color-pheno-border: #E5E3DE;
+  --color-pheno-accent: #2D5A3D;
+  --color-pheno-accent-light: #E8F0EB;
+  --color-pheno-reject: #8B3A3A;
+  --color-pheno-reject-light: #F5EDED;
+  --color-pheno-citation-glow: #F0E6D0;
+  --color-pheno-citation-border: #D4B87A;
+  --color-pheno-condition: #4A6FA5;
+  --color-pheno-medication: #7A6547;
+  --color-pheno-hover: rgba(45, 90, 61, 0.06);
+  --color-pheno-focus-ring: rgba(45, 90, 61, 0.3);
+}
+
+@layer base {
+  body {
+    @apply bg-pheno-bg text-pheno-text-primary font-body;
+  }
+}
+
+@layer utilities {
+  .animate-spin-slow {
+    animation: spin 8s linear infinite;
+  }
+
+  .animate-progress {
+    animation: progress 1.5s ease-in-out infinite;
+  }
+}
+
+@keyframes progress {
+  0% {
+    width: 0%;
+    margin-left: 0%;
+  }
+  50% {
+    width: 60%;
+    margin-left: 20%;
+  }
+  100% {
+    width: 0%;
+    margin-left: 100%;
+  }
+}

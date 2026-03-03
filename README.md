@@ -10,22 +10,13 @@ A Chrome extension sidecar for chart review, powered by PhenoML's Construe API.
 - Node.js 18+
 - npm
 - Google Chrome
-
-### Configure Credentials
-
-After loading the extension, open the options page to enter your PhenoML credentials:
-
-1. Go to `chrome://extensions`
-2. Find PhenoChart and click **Details** → **Extension options** (or right-click the toolbar icon → **Options**)
-3. Enter your Instance URL, Client ID, and Client Secret
-4. Click **Save Credentials**
-
-Credentials are stored locally in `browser.storage.local` — never in source code or `.env` files.
+- Medplum [sign up](https://medplum.com)
+- PhenoML API access [sign up](https://console.pheno.ml)
 
 ### Build
 
 ```bash
-git clone <repo-url> && cd rcm-chrome-extension
+git clone <repo-url> && cd phenochart
 npm install
 npm run build
 ```
@@ -41,15 +32,22 @@ This produces a ready-to-load extension in `.output/chrome-mv3/`.
 5. PhenoChart should now appear in your extensions toolbar (puzzle piece icon)
 6. Pin it by clicking the puzzle piece icon and then the pin next to PhenoChart
 
-### Open the Side Panel
+### Configure Credentials
 
-- Click the PhenoChart diamond icon in the toolbar, or
-- Right-click any page and select **PhenoChart** from the context menu
+Click the PhenoChart icon in the toolbar to open the side panel, then open Settings to enter your PhenoML credentials:
+
+1. Enter your Instance URL, Username, Password, and FHIR Provider ID
+2. Select the code systems you want to extract (ICD-10-CM, ICD-10-PCS, RXNORM, LOINC, HPO, CPT, SNOMED CT)
+3. Click **Save**
+
+Credentials are stored locally in `browser.storage.local` - never in source code or `.env` files. PhenoML is HIPAA compliant and SOC 2 Type II certified.
 
 ### Try the Demo
 
+You can test the review flow without credentials:
+
 1. Click **Load Demo Encounter** in the side panel
-2. Review the 7 AI-extracted codes (5 ICD-10-CM + 2 RXNORM)
+2. Review the AI-extracted ICD-10-CM codes
 3. Accept or reject each code
 4. Submit your review
 5. Click **Review Another** to reset
@@ -73,35 +71,27 @@ npm run check   # TypeScript check
 npm run clean   # Remove build artifacts
 ```
 
-## Demo Flow
+## Usage
 
-1. **Idle** -- Side panel opens with PhenoChart branding
-2. **Loading** -- Click "Load Demo Encounter" to start code extraction
-3. **Review** -- 7 AI-extracted codes appear (5 ICD-10-CM conditions + 2 RXNORM medications)
-4. **Accept/Reject** -- Review each code with citation-backed rationale
-5. **Submit** -- Confirmation summary with accepted/rejected breakdown
-6. **Reset** -- "Review Another" returns to idle
+### Real EHR mode
 
-### Keyboard Shortcuts (Review State)
+When on a Medplum encounter page with credentials configured, PhenoChart automatically detects the patient and encounter context. Click **Extract Codes** to run the Construe API against the encounter narrative. Review the extracted codes, then submit - accepted codes are written back to the patient record as FHIR resources.
 
-| Key | Action |
-|-----|--------|
-| Tab | Navigate between code cards |
-| A | Accept focused card |
-| R | Reject focused card |
-| Escape | Cancel rejection comment |
+### Demo mode
+
+Click **Load Demo Encounter** to run through the full review flow with sample data. No credentials or EHR connection required.
 
 ## Stack
 
-- [WXT](https://wxt.dev/) -- Chrome extension framework
+- [WXT](https://wxt.dev/) - Chrome extension framework
 - React 19 + TypeScript
 - Tailwind CSS v4 + shadcn/ui
-- PhenoML Construe API (mocked for V0)
+- [PhenoML SDK](https://github.com/PhenoML/phenoml-ts-sdk) (`npm i -s phenoml`) - Construe API + FHIR client
 
 ## Architecture
 
 ```
-Content Script (MedPlum page detection)
+Content Script (Medplum page detection)
     |
     v
 browser.storage.local (page context)
@@ -110,12 +100,14 @@ browser.storage.local (page context)
 Side Panel (React app)
     - AppContext + useReducer state machine
     - 6 states: idle -> loading -> review -> submitting -> submitted | error
-    - Mock services simulate API latency
+    |
+    +--> Real path: PhenoML SDK (construe.extractCodes) -> review -> FHIR write-back
+    +--> Demo path: mock encounter + mock codes -> review -> simulated submission
 ```
 
-The content script detects MedPlum EHR pages and writes page context to `browser.storage.local`. The side panel reads this context to show contextual messaging. All data is mocked for V0 -- no real API calls.
+The content script detects Medplum EHR pages and writes page context to `browser.storage.local`. The side panel reads this context to determine whether to use real API calls or demo data. In real mode, accepted codes are written back as FHIR resources (Condition, MedicationRequest, Observation, Procedure) via a FHIR bundle.
 
-## V0 Scope
-
-This is a fully mocked demo. No real Construe API calls, no FHIR reads/writes, no Chrome Web Store publishing. Load unpacked and click through the flow.
-
+## Future Enhancements
+- Demo for browser based EHRs
+- Build and run agents in PhenoChart
+- .... tell us what you'd like to see! Feel free to raise a PR or create an issue for a suggested feature!
