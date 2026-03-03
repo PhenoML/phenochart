@@ -1,7 +1,6 @@
 export default defineContentScript({
   matches: [
     'https://*.medplum.com/*',
-    'http://localhost:3000/*',
   ],
   main() {
     // Guard against duplicate injection (HMR / extension update)
