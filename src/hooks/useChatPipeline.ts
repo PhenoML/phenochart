@@ -85,10 +85,10 @@ export function useChatPipeline() {
     agentId: string,
     currentSessionId: string | null,
   ) {
-    const userMsgId = `msg-${Date.now()}`;
+    const userMsgId = `msg-${crypto.randomUUID()}`;
     dispatch({ type: 'ADD_USER_MESSAGE', id: userMsgId, content });
 
-    const assistantMsgId = `msg-${Date.now()}-assistant`;
+    const assistantMsgId = `msg-${crypto.randomUUID()}`;
     dispatch({ type: 'START_STREAM', messageId: assistantMsgId });
 
     abortRef.current = new AbortController();

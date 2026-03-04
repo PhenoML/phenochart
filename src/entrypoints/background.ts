@@ -89,7 +89,7 @@ async function runPipeline(message: {
     const fullMessageForAgent = `Here is the FHIR Bundle extracted from the patient's chart:\n\n\`\`\`json\n${fhirJsonStr}\n\`\`\`\n\n${message.userPrompt}`;
 
     const userMsg: ChatMessage = {
-      id: `msg-${Date.now()}`,
+      id: `msg-${crypto.randomUUID()}`,
       role: 'user',
       content: message.userPrompt,
       fhirJson: fhirJsonStr,
@@ -103,7 +103,7 @@ async function runPipeline(message: {
     });
 
     const assistantMsg: ChatMessage = {
-      id: `msg-${Date.now()}-assistant`,
+      id: `msg-${crypto.randomUUID()}`,
       role: 'assistant',
       content,
       timestamp: new Date().toISOString(),
