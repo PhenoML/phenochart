@@ -50,6 +50,7 @@ export function useCdsPipeline() {
       const messageContent = buildCdsMessage({
         text,
         isFirstMessage,
+        patientId: patientId ?? undefined,
         customPrompt: customPromptRef.current ?? undefined,
       });
 

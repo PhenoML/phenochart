@@ -24,39 +24,46 @@ describe('buildAgentContext', () => {
 });
 
 describe('buildCdsMessage', () => {
-  it('should prepend custom prompt on first message', () => {
+  it('should include patient ID and custom prompt on first message', () => {
     const result = buildCdsMessage({
       text: 'What labs should I order?',
       isFirstMessage: true,
+      patientId: 'abc-123',
       customPrompt: 'Focus on cardiology',
     });
+    expect(result).toContain('Patient ID: abc-123');
     expect(result).toContain('Focus on cardiology');
     expect(result).toContain('What labs should I order?');
   });
 
-  it('should not prepend custom prompt on subsequent messages', () => {
+  it('should include patient ID without custom prompt on first message', () => {
+    const result = buildCdsMessage({
+      text: 'What labs should I order?',
+      isFirstMessage: true,
+      patientId: 'abc-123',
+    });
+    expect(result).toContain('Patient ID: abc-123');
+    expect(result).toContain('What labs should I order?');
+    expect(result).not.toContain('Additional instructions');
+  });
+
+  it('should not prepend context on subsequent messages', () => {
     const result = buildCdsMessage({
       text: 'And what about medications?',
       isFirstMessage: false,
+      patientId: 'abc-123',
       customPrompt: 'Focus on cardiology',
     });
     expect(result).not.toContain('Focus on cardiology');
+    expect(result).not.toContain('Patient ID');
     expect(result).toBe('And what about medications?');
   });
 
-  it('should return plain text when no custom prompt', () => {
+  it('should return plain text when no patient ID or custom prompt on first message', () => {
     const result = buildCdsMessage({
       text: 'What labs should I order?',
       isFirstMessage: true,
     });
     expect(result).toBe('What labs should I order?');
-  });
-
-  it('should return plain text for subsequent messages even without custom prompt', () => {
-    const result = buildCdsMessage({
-      text: 'Follow up question',
-      isFirstMessage: false,
-    });
-    expect(result).toBe('Follow up question');
   });
 });

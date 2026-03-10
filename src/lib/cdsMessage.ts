@@ -1,17 +1,28 @@
 export interface BuildCdsMessageOptions {
   text: string;
   isFirstMessage: boolean;
+  patientId?: string;
   customPrompt?: string;
 }
 
 export function buildCdsMessage(options: BuildCdsMessageOptions): string {
-  const { text, isFirstMessage, customPrompt } = options;
+  const { text, isFirstMessage, patientId, customPrompt } = options;
 
-  if (isFirstMessage && customPrompt) {
-    return `Additional instructions: ${customPrompt}\n\n---\n\nUser question: ${text}`;
+  if (!isFirstMessage) return text;
+
+  const parts: string[] = [];
+
+  if (patientId) {
+    parts.push(`Patient ID: ${patientId}`);
   }
 
-  return text;
+  if (customPrompt) {
+    parts.push(`Additional instructions: ${customPrompt}`);
+  }
+
+  parts.push(text);
+
+  return parts.join('\n\n');
 }
 
 export function buildAgentContext(patientId: string, customPrompt?: string): string {

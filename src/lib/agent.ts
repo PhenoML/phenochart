@@ -84,49 +84,22 @@ export async function createAgentWithPrompt(
   return { agentId: data.id, agentName: data.name ?? params.name };
 }
 
-// Cache OAuth token to avoid redundant fetches on every message
-let cachedToken: { value: string; instanceUrl: string; expiresAt: number } | null = null;
-
-async function getOrFetchToken(config: {
-  instanceUrl: string;
-  clientId: string;
-  clientSecret: string;
-}): Promise<string | undefined> {
-  const now = Date.now();
-  if (
-    cachedToken &&
-    cachedToken.instanceUrl === config.instanceUrl &&
-    cachedToken.expiresAt > now
-  ) {
-    return cachedToken.value;
+/**
+ * Extract the SDK's internally-cached OAuth token from the client's auth
+ * provider.  The SDK already handles token fetch, caching, and refresh via
+ * OAuthAuthProvider – reusing it avoids a redundant /v2/auth/token call and
+ * the silent-failure path that existed in the previous manual fetch.
+ */
+async function getSdkToken(
+  client: ReturnType<typeof createClient>,
+): Promise<string | undefined> {
+  try {
+    const authProvider = (client as unknown as { _options: { authProvider: { getToken: () => Promise<string> } } })
+      ._options.authProvider;
+    return await authProvider.getToken();
+  } catch {
+    return undefined;
   }
-
-  const tokenRes = await fetch(`${config.instanceUrl}/v2/auth/token`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      client_id: config.clientId,
-      client_secret: config.clientSecret,
-      grant_type: 'client_credentials',
-    }),
-  });
-
-  if (!tokenRes.ok) return undefined;
-
-  const { access_token, expires_in } = (await tokenRes.json()) as {
-    access_token?: string;
-    expires_in?: number;
-  };
-  if (!access_token) return undefined;
-
-  // Default to 50 minutes if expires_in not provided; refresh 60s early
-  const ttlMs = ((expires_in ?? 3000) - 60) * 1000;
-  cachedToken = {
-    value: access_token,
-    instanceUrl: config.instanceUrl,
-    expiresAt: now + ttlMs,
-  };
-  return access_token;
 }
 
 export interface StreamChatOptions {
@@ -144,18 +117,17 @@ export async function* streamAgentChat(
   if (!config) throw new Error('PhenoML credentials not configured.');
   const client = createClient(config);
 
-  // Fetch a cached OAuth token so we can pass X-Phenoml-Fhir-Provider,
-  // ensuring the agent can query FHIR even if it wasn't created with a provider.
+  // Reuse the SDK's own cached OAuth token for the X-Phenoml-Fhir-Provider
+  // header so the agent can query FHIR even if it wasn't created with a provider.
   let fhirProviderHeader: string | undefined;
   if (config.fhirProviderId) {
-    try {
-      const token = await getOrFetchToken(config);
-      if (token) {
-        fhirProviderHeader = `${config.fhirProviderId}:${token}`;
-      }
-    } catch {
-      // Token fetch failed — continue without FHIR provider header
+    const token = await getSdkToken(client);
+    console.log('[streamAgentChat] token obtained:', !!token, 'fhirProviderId:', config.fhirProviderId);
+    if (token) {
+      fhirProviderHeader = `${config.fhirProviderId}:${token}`;
     }
+  } else {
+    console.warn('[streamAgentChat] No fhirProviderId configured');
   }
 
   const request = {
@@ -165,6 +137,8 @@ export async function* streamAgentChat(
     ...(options.patientId && { 'X-Phenoml-On-Behalf-Of': `Patient/${options.patientId}` }),
     ...(fhirProviderHeader && { 'X-Phenoml-Fhir-Provider': fhirProviderHeader }),
   } as unknown as Parameters<typeof client.agent.streamChat>[0];
+
+  console.log('[streamAgentChat] request keys:', Object.keys(request), 'patientId:', options.patientId);
 
   const stream = await client.agent.streamChat(request);
 
