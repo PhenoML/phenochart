@@ -1,9 +1,12 @@
 import { useEffect, useRef } from 'react';
-import { useChat } from '../../context/ChatContext';
 import { ChatBubble } from './ChatBubble';
+import type { ChatMessage } from '../../types/chat';
 
-export function ChatMessages() {
-  const { messages } = useChat();
+interface Props {
+  messages: ChatMessage[];
+}
+
+export function ChatMessages({ messages }: Props) {
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {

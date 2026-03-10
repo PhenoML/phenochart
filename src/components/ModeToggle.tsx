@@ -1,4 +1,4 @@
-export type AppMode = 'extraction' | 'chat';
+export type AppMode = 'extraction' | 'chat' | 'cds';
 
 interface Props {
   mode: AppMode;
@@ -9,6 +9,7 @@ export function ModeToggle({ mode, onChange }: Props) {
   const tabs: Array<{ value: AppMode; label: string }> = [
     { value: 'extraction', label: 'Code Extraction' },
     { value: 'chat', label: 'Agent Chat' },
+    { value: 'cds', label: 'Appt Prep' },
   ];
 
   return (

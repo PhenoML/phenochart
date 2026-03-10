@@ -15,27 +15,37 @@ const ALL_CODE_SYSTEMS: Array<{ value: CodeSystem; label: string }> = [
 
 interface Props {
   onClose?: () => void;
+  onCreateAgent?: () => void;
+  cdsAgentIdOverride?: string;
 }
 
-export function SettingsForm({ onClose }: Props) {
+export function SettingsForm({ onClose, onCreateAgent, cdsAgentIdOverride }: Props) {
   const [instanceUrl, setInstanceUrl] = useState('https://experiment.app.pheno.ml');
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
+  const [clientId, setClientId] = useState('');
+  const [clientSecret, setClientSecret] = useState('');
   const [fhirProviderId, setFhirProviderId] = useState('');
   const [codeSystems, setCodeSystems] = useState<CodeSystem[]>(DEFAULT_CODE_SYSTEMS);
+  const [cdsAgentId, setCdsAgentId] = useState('');
+  const [cdsAgentPrompt, setCdsAgentPrompt] = useState('');
   const [status, setStatus] = useState<'idle' | 'saved' | 'error'>('idle');
 
   useEffect(() => {
     getConfig().then((config) => {
       if (config) {
         setInstanceUrl(config.instanceUrl);
-        setUsername(config.username);
-        setPassword(config.password);
+        setClientId(config.clientId);
+        setClientSecret(config.clientSecret);
         setFhirProviderId(config.fhirProviderId);
         setCodeSystems(config.codeSystems);
+        setCdsAgentId(config.cdsAgentId ?? '');
+        setCdsAgentPrompt(config.cdsAgentPrompt ?? '');
       }
     });
   }, []);
+
+  useEffect(() => {
+    if (cdsAgentIdOverride) setCdsAgentId(cdsAgentIdOverride);
+  }, [cdsAgentIdOverride]);
 
   function toggleCodeSystem(system: CodeSystem) {
     setCodeSystems((prev) =>
@@ -45,8 +55,17 @@ export function SettingsForm({ onClose }: Props) {
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
+    setStatus('idle');
     try {
-      await saveConfig({ instanceUrl, username, password, fhirProviderId, codeSystems });
+      await saveConfig({
+        instanceUrl,
+        clientId,
+        clientSecret,
+        fhirProviderId,
+        codeSystems,
+        cdsAgentId: cdsAgentId.trim() || undefined,
+        cdsAgentPrompt: cdsAgentPrompt.trim() || undefined,
+      });
       onClose?.();
     } catch {
       setStatus('error');
@@ -55,8 +74,8 @@ export function SettingsForm({ onClose }: Props) {
 
   const canSave =
     instanceUrl.trim() &&
-    username.trim() &&
-    password.trim() &&
+    clientId.trim() &&
+    clientSecret.trim() &&
     fhirProviderId.trim() &&
     codeSystems.length > 0;
 
@@ -104,24 +123,24 @@ export function SettingsForm({ onClose }: Props) {
 
           <label className="flex flex-col gap-1.5">
             <span className="font-body text-sm font-medium text-pheno-text-primary">
-              Username
+              Client ID
             </span>
             <input
               type="text"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              value={clientId}
+              onChange={(e) => setClientId(e.target.value)}
               className="rounded-md border border-pheno-border bg-pheno-bg-panel px-3 py-2 font-mono text-sm text-pheno-text-primary placeholder:text-pheno-text-tertiary focus:outline-none focus:ring-2 focus:ring-pheno-focus-ring"
             />
           </label>
 
           <label className="flex flex-col gap-1.5">
             <span className="font-body text-sm font-medium text-pheno-text-primary">
-              Password
+              Client Secret
             </span>
             <input
               type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              value={clientSecret}
+              onChange={(e) => setClientSecret(e.target.value)}
               className="rounded-md border border-pheno-border bg-pheno-bg-panel px-3 py-2 font-mono text-sm text-pheno-text-primary placeholder:text-pheno-text-tertiary focus:outline-none focus:ring-2 focus:ring-pheno-focus-ring"
             />
           </label>
@@ -162,6 +181,50 @@ export function SettingsForm({ onClose }: Props) {
               </p>
             )}
           </div>
+
+          <Divider className="my-2" />
+
+          <h3 className="font-heading text-xs font-semibold uppercase tracking-wider text-pheno-text-tertiary">
+            Clinical Decision Support
+          </h3>
+
+          <label className="flex flex-col gap-1.5">
+            <span className="font-body text-sm font-medium text-pheno-text-primary">
+              CDS Agent ID
+            </span>
+            <input
+              type="text"
+              value={cdsAgentId}
+              onChange={(e) => setCdsAgentId(e.target.value)}
+              placeholder="Optional — pre-selects agent in Appt Prep tab"
+              className="rounded-md border border-pheno-border bg-pheno-bg-panel px-3 py-2 font-mono text-sm text-pheno-text-primary placeholder:text-pheno-text-tertiary focus:outline-none focus:ring-2 focus:ring-pheno-focus-ring"
+            />
+            <span className="font-body text-xs text-pheno-text-tertiary">
+              Default agent pre-selected in the Appt Prep tab. Can be overridden via the in-tab picker.
+            </span>
+            {onCreateAgent && (
+              <button
+                type="button"
+                onClick={onCreateAgent}
+                className="mt-1 rounded-md border border-pheno-accent/30 bg-pheno-accent/5 px-3 py-1.5 font-body text-xs font-medium text-pheno-accent transition-colors hover:bg-pheno-accent/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pheno-focus-ring"
+              >
+                + Create new agent
+              </button>
+            )}
+          </label>
+
+          <label className="flex flex-col gap-1.5">
+            <span className="font-body text-sm font-medium text-pheno-text-primary">
+              CDS Custom Prompt
+            </span>
+            <textarea
+              value={cdsAgentPrompt}
+              onChange={(e) => setCdsAgentPrompt(e.target.value)}
+              placeholder="Optional — additional instructions (e.g., specialty focus)"
+              rows={3}
+              className="resize-none rounded-md border border-pheno-border bg-pheno-bg-panel px-3 py-2 font-body text-sm text-pheno-text-primary placeholder:text-pheno-text-tertiary focus:outline-none focus:ring-2 focus:ring-pheno-focus-ring"
+            />
+          </label>
 
           <button
             type="submit"

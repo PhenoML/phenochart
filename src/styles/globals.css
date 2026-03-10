@@ -66,6 +66,15 @@
   }
 }
 
+@keyframes bounce-dot {
+  0%, 80%, 100% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(-4px);
+  }
+}
+
 @keyframes fade-slide-in {
   from {
     opacity: 0;
@@ -84,5 +93,18 @@
 
   .animate-fade-slide-in {
     animation: fade-slide-in 0.4s ease-out both;
+  }
+
+  .prose-chat {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  .prose-chat > :first-child {
+    margin-top: 0;
+  }
+
+  .prose-chat > :last-child {
+    margin-bottom: 0;
   }
 }

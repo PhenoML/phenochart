@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { AppProvider, useApp } from '../../context/AppContext';
 import { ChatProvider } from '../../context/ChatContext';
+import { CdsProvider } from '../../context/CdsContext';
 import { ErrorBoundary } from '../../components/ErrorBoundary';
 import { IdlePrompt } from '../../components/IdlePrompt';
 import { PatientContextBar } from '../../components/PatientContextBar';
@@ -15,6 +16,7 @@ import { SubmissionSummary } from '../../components/SubmissionSummary';
 import { SettingsDrawer } from '../../components/SettingsDrawer';
 import { ModeToggle, type AppMode } from '../../components/ModeToggle';
 import { ChatView } from '../../components/chat/ChatView';
+import { CdsView } from '../../components/cds/CdsView';
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
 
 interface ReviewStateProps {
@@ -101,6 +103,7 @@ function AppContent() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [selection, setSelection] = useState<Set<string>>(new Set());
   const [mode, setMode] = useState<AppMode>('extraction');
+  const [agentRefreshKey, setAgentRefreshKey] = useState(0);
   useKeyboardShortcuts();
 
   const openSettings = () => setIsSettingsOpen(true);
@@ -122,81 +125,74 @@ function AppContent() {
     setSelection(new Set());
   }
 
-  if (state === 'error' && mode === 'extraction') {
-    return <ErrorState />;
-  }
-
-  // When in idle state, show mode toggle + the active mode's idle screen
-  if (state === 'idle') {
-    if (mode === 'chat') {
+  function renderExtractionContent() {
+    if (state === 'error') {
+      return <ErrorState />;
+    }
+    if (state === 'idle') {
+      return <IdlePrompt onOpenSettings={openSettings} />;
+    }
+    if (state === 'loading') {
       return (
-        <ChatProvider>
-          <ModeToggle mode={mode} onChange={setMode} />
-          <ChatView onOpenSettings={openSettings} />
-          <SettingsDrawer isOpen={isSettingsOpen} onClose={closeSettings} />
-        </ChatProvider>
+        <div className="min-h-0 flex-1 bg-pheno-bg">
+          <PatientContextBar onOpenSettings={openSettings} />
+          <EncounterNarrative />
+          <LoadingState />
+        </div>
       );
     }
-
+    if (state === 'submitting') {
+      return (
+        <div className="min-h-0 flex-1 bg-pheno-bg">
+          <PatientContextBar onOpenSettings={openSettings} />
+          <SubmittingOverlay />
+        </div>
+      );
+    }
+    if (state === 'submitted') {
+      return (
+        <div className="min-h-0 flex-1 bg-pheno-bg">
+          <PatientContextBar onOpenSettings={openSettings} />
+          <SubmissionSummary />
+        </div>
+      );
+    }
+    // review state
     return (
-      <>
-        <ModeToggle mode={mode} onChange={setMode} />
-        <IdlePrompt onOpenSettings={openSettings} />
-        <SettingsDrawer isOpen={isSettingsOpen} onClose={closeSettings} />
-      </>
-    );
-  }
-
-  if (state === 'loading') {
-    return (
-      <div className="min-h-screen bg-pheno-bg">
+      <div className="flex min-h-0 flex-1 flex-col bg-pheno-bg">
         <PatientContextBar onOpenSettings={openSettings} />
         <EncounterNarrative />
-        <LoadingState />
-        <SettingsDrawer isOpen={isSettingsOpen} onClose={closeSettings} />
-      </div>
-    );
-  }
-
-  if (state === 'submitting') {
-    return (
-      <div className="min-h-screen bg-pheno-bg">
-        <PatientContextBar onOpenSettings={openSettings} />
-        <SubmittingOverlay />
-        <SettingsDrawer isOpen={isSettingsOpen} onClose={closeSettings} />
-      </div>
-    );
-  }
-
-  if (state === 'submitted') {
-    return (
-      <div className="min-h-screen bg-pheno-bg">
-        <PatientContextBar onOpenSettings={openSettings} />
-        <SubmissionSummary />
-        <SettingsDrawer isOpen={isSettingsOpen} onClose={closeSettings} />
+        {error && (
+          <div className="border-b border-pheno-reject/20 bg-pheno-reject/5 px-4 py-2">
+            <p className="font-body text-xs text-pheno-reject">{error}</p>
+          </div>
+        )}
+        <div className="flex-1">
+          <ReviewState selection={selection} onToggle={handleToggle} />
+        </div>
+        <ReviewFooter
+          selection={selection}
+          onSelectAll={handleSelectAll}
+          onClearSelection={handleClearSelection}
+        />
       </div>
     );
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-pheno-bg">
-      <PatientContextBar onOpenSettings={openSettings} />
-      <EncounterNarrative />
-      {error && (
-        <div className="border-b border-pheno-reject/20 bg-pheno-reject/5 px-4 py-2">
-          <p className="font-body text-xs text-pheno-reject">{error}</p>
-        </div>
-      )}
-      <div className="flex-1">
-        <ReviewState selection={selection} onToggle={handleToggle} />
+    <>
+      <ModeToggle mode={mode} onChange={setMode} />
+      <div className={mode !== 'extraction' ? 'hidden' : 'flex flex-1 flex-col'}>
+        {renderExtractionContent()}
       </div>
-      <ReviewFooter
-        selection={selection}
-        onSelectAll={handleSelectAll}
-        onClearSelection={handleClearSelection}
-      />
-      <SettingsDrawer isOpen={isSettingsOpen} onClose={closeSettings} />
-    </div>
+      <div className={mode !== 'chat' ? 'hidden' : 'flex flex-1 flex-col'}>
+        <ChatView onOpenSettings={openSettings} />
+      </div>
+      <div className={mode !== 'cds' ? 'hidden' : 'flex flex-1 flex-col'}>
+        <CdsView onOpenSettings={openSettings} agentRefreshKey={agentRefreshKey} />
+      </div>
+      <SettingsDrawer isOpen={isSettingsOpen} onClose={closeSettings} onAgentCreated={() => setAgentRefreshKey((k) => k + 1)} />
+    </>
   );
 }
 
@@ -204,7 +200,11 @@ export default function App() {
   return (
     <AppProvider>
       <ErrorBoundary>
-        <AppContent />
+        <ChatProvider>
+          <CdsProvider>
+            <AppContent />
+          </CdsProvider>
+        </ChatProvider>
       </ErrorBoundary>
     </AppProvider>
   );

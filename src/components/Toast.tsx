@@ -10,12 +10,17 @@ export function Toast({ message, duration = 3000, onDone }: Props) {
   const [visible, setVisible] = useState(true);
 
   useEffect(() => {
+    let cancelled = false;
     const timer = setTimeout(() => {
       setVisible(false);
-      // Wait for fade-out animation before unmounting
-      setTimeout(onDone, 300);
+      setTimeout(() => {
+        if (!cancelled) onDone();
+      }, 300);
     }, duration);
-    return () => clearTimeout(timer);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
   }, [duration, onDone]);
 
   return (

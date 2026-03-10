@@ -11,7 +11,7 @@ export default defineConfig({
     name: 'PhenoChart',
     description: 'AI-powered medical code extraction from clinical narratives',
     version: '0.1.0',
-    permissions: ['sidePanel', 'activeTab', 'storage', 'tabs', 'notifications'],
+    permissions: ['sidePanel', 'activeTab', 'storage', 'tabs', 'notifications', 'webNavigation'],
     host_permissions: ['https://*.pheno.ml/*', '<all_urls>'],
     icons: {
       16: 'icons/16.png',
