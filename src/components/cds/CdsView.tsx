@@ -1,7 +1,7 @@
 import { useCds } from '../../context/CdsContext';
 import { useCdsPipeline } from '../../hooks/useCdsPipeline';
 import { AgentPicker } from '../chat/AgentPicker';
-import { ChatMessages } from '../chat/ChatMessages';
+import { CdsChatMessages } from './CdsChatMessages';
 import { ChatInput } from '../chat/ChatInput';
 import { PhenoChartLogo } from '../PhenoChartLogo';
 
@@ -11,7 +11,7 @@ interface Props {
 }
 
 export function CdsView({ onOpenSettings, agentRefreshKey }: Props) {
-  const { messages, isStreaming, selectedAgent, error, dispatch } = useCds();
+  const { messages, isStreaming, selectedAgent, sessionId, error, dispatch } = useCds();
   const { sendMessage, newConversation } = useCdsPipeline();
 
   // Empty state — no messages yet (with agent picker)
@@ -60,16 +60,32 @@ export function CdsView({ onOpenSettings, agentRefreshKey }: Props) {
         <span className="font-body text-xs font-medium text-pheno-text-secondary">
           {selectedAgent?.name ?? 'Appointment Prep'}
         </span>
-        <button
-          onClick={newConversation}
-          disabled={isStreaming}
-          className="font-body text-xs text-pheno-text-tertiary transition-colors hover:text-pheno-text-secondary disabled:opacity-40"
-        >
-          New Conversation
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => {
+              browser.runtime.sendMessage({
+                type: 'OPEN_DEBUG_WINDOW',
+                sessionId,
+              });
+            }}
+            title="Open debug window"
+            className="text-pheno-text-tertiary transition-colors hover:text-pheno-text-secondary"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
+            </svg>
+          </button>
+          <button
+            onClick={newConversation}
+            disabled={isStreaming}
+            className="font-body text-xs text-pheno-text-tertiary transition-colors hover:text-pheno-text-secondary disabled:opacity-40"
+          >
+            New Conversation
+          </button>
+        </div>
       </div>
 
-      <ChatMessages messages={messages} />
+      <CdsChatMessages messages={messages} />
 
       {error && (
         <div className="border-t border-pheno-reject/20 bg-pheno-reject/5 px-4 py-2">

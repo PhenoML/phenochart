@@ -225,6 +225,18 @@ export default defineBackground(() => {
           (err: unknown) => sendResponse({ error: String(err) }),
         );
         return true;
+
+      case 'OPEN_DEBUG_WINDOW':
+        browser.windows.create({
+          url: browser.runtime.getURL(`/debug.html?sessionId=${encodeURIComponent(message.sessionId ?? '')}`),
+          type: 'popup',
+          width: 800,
+          height: 600,
+        }).then(
+          () => sendResponse({ ok: true }),
+          (err: unknown) => sendResponse({ error: String(err) }),
+        );
+        return true;
     }
   });
 

@@ -1,11 +1,6 @@
 import { describe, it, expect } from 'vitest';
-
-/**
- * We can't call React hooks directly in unit tests without a renderer,
- * so we test the reducer function directly. We need to export it first —
- * that's part of the refactor.
- */
 import { cdsReducer, cdsInitialState } from '../useCdsState';
+import type { TraceData } from '../../types/chat';
 
 describe('cdsReducer — after context simplification', () => {
   it('should not have isLoadingPatient in initial state', () => {
@@ -77,5 +72,50 @@ describe('cdsReducer — after context simplification', () => {
     expect(state.selectedAgent).toEqual(agent);
     expect(state.messages).toHaveLength(0);
     expect(state.phase).toBe('idle');
+  });
+});
+
+describe('cdsReducer SET_TRACES', () => {
+  it('attaches trace data to matching assistant messages by id', () => {
+    const state = {
+      ...cdsInitialState,
+      phase: 'chatting' as const,
+      messages: [
+        { id: 'u1', role: 'user' as const, content: 'hi', timestamp: '2026-01-01T00:00:00Z' },
+        { id: 'a1', role: 'assistant' as const, content: 'hello', timestamp: '2026-01-01T00:00:01Z' },
+        { id: 'u2', role: 'user' as const, content: 'q2', timestamp: '2026-01-01T00:00:02Z' },
+        { id: 'a2', role: 'assistant' as const, content: 'answer', timestamp: '2026-01-01T00:00:03Z' },
+      ],
+    };
+
+    const trace1: TraceData = { toolCalls: [{ name: 'tool_a', args: {}, result: {} }] };
+    const trace2: TraceData = { toolCalls: [{ name: 'tool_b', args: {}, result: { b: 1 } }] };
+    const traces = new Map<string, TraceData>([
+      ['a1', trace1],
+      ['a2', trace2],
+    ]);
+
+    const next = cdsReducer(state, { type: 'SET_TRACES', traces });
+
+    expect(next.messages[0].trace).toBeUndefined();
+    expect(next.messages[1].trace).toEqual(trace1);
+    expect(next.messages[2].trace).toBeUndefined();
+    expect(next.messages[3].trace).toEqual(trace2);
+  });
+
+  it('leaves messages without matching trace unchanged', () => {
+    const state = {
+      ...cdsInitialState,
+      messages: [
+        { id: 'a1', role: 'assistant' as const, content: 'hi', timestamp: '2026-01-01T00:00:00Z' },
+      ],
+    };
+
+    const traces = new Map<string, TraceData>([
+      ['nonexistent', { toolCalls: [] }],
+    ]);
+
+    const next = cdsReducer(state, { type: 'SET_TRACES', traces });
+    expect(next.messages[0].trace).toBeUndefined();
   });
 });

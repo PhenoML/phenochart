@@ -1,6 +1,6 @@
 import { useReducer } from 'react';
 import type { CdsState } from '../types/cds';
-import type { ChatMessage, AgentInfo } from '../types/chat';
+import type { ChatMessage, AgentInfo, TraceData } from '../types/chat';
 
 export type CdsAction =
   | { type: 'SELECT_AGENT'; agent: AgentInfo }
@@ -12,6 +12,7 @@ export type CdsAction =
   | { type: 'LOAD_SESSION'; messages: ChatMessage[]; sessionId: string | null }
   | { type: 'SET_ERROR'; error: string }
   | { type: 'CLEAR_ERROR' }
+  | { type: 'SET_TRACES'; traces: Map<string, TraceData> }
   | { type: 'NEW_CONVERSATION' };
 
 export const cdsInitialState: CdsState = {
@@ -92,6 +93,14 @@ export function cdsReducer(state: CdsState, action: CdsAction): CdsState {
 
     case 'CLEAR_ERROR':
       return { ...state, error: null, phase: state.messages.length > 0 ? 'chatting' : 'idle' };
+
+    case 'SET_TRACES': {
+      const messages = state.messages.map((m) => {
+        const trace = action.traces.get(m.id);
+        return trace ? { ...m, trace } : m;
+      });
+      return { ...state, messages };
+    }
 
     case 'NEW_CONVERSATION':
       return { ...cdsInitialState, selectedAgent: state.selectedAgent };
