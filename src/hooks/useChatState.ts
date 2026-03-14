@@ -13,6 +13,7 @@ type Action =
   | { type: 'STREAM_DELTA'; messageId: string; delta: string }
   | { type: 'STREAM_END'; messageId: string }
   | { type: 'SET_SESSION_ID'; sessionId: string }
+  | { type: 'ADD_ASSISTANT_MESSAGE'; id: string; content: string; source?: string }
   | { type: 'SET_ERROR'; error: string }
   | { type: 'LOAD_TASK'; messages: ChatMessage[]; sessionId: string | null; agentId: string; agentName: string }
   | { type: 'RESET' };
@@ -59,6 +60,21 @@ function reducer(state: ChatState, action: Action): ChatState {
             role: 'user',
             content: action.content,
             timestamp: new Date().toISOString(),
+          },
+        ],
+      };
+
+    case 'ADD_ASSISTANT_MESSAGE':
+      return {
+        ...state,
+        messages: [
+          ...state.messages,
+          {
+            id: action.id,
+            role: 'assistant',
+            content: action.content,
+            timestamp: new Date().toISOString(),
+            source: action.source,
           },
         ],
       };

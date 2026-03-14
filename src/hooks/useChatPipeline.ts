@@ -2,6 +2,8 @@ import { useRef, useCallback } from 'react';
 import { useChat } from '../context/ChatContext';
 import { usePageContext } from './usePageContext';
 import { captureScreenshot, streamAgentChat } from '../lib/agent';
+import { getLlmConfig } from '../lib/config';
+import { sendChatCompletion } from '../lib/llm';
 import type { BackgroundTask } from '../types/chat';
 
 export function useChatPipeline() {
@@ -151,6 +153,38 @@ export function useChatPipeline() {
     [selectedAgent, sessionId, isStreaming],
   );
 
+  const sendToLlm = useCallback(
+    async (assistantMessageContent: string) => {
+      const llmConfig = await getLlmConfig();
+      if (!llmConfig) {
+        dispatch({ type: 'SET_ERROR', error: 'LLM API not configured.' });
+        return;
+      }
+
+      try {
+        const content = await sendChatCompletion({
+          baseUrl: llmConfig.apiUrl,
+          apiKey: llmConfig.apiKey,
+          apiKeyHeader: llmConfig.apiKeyHeader,
+          model: llmConfig.model,
+          messages: [{ role: 'user', content: assistantMessageContent }],
+        });
+        dispatch({
+          type: 'ADD_ASSISTANT_MESSAGE',
+          id: `msg-${crypto.randomUUID()}`,
+          content,
+          source: 'llm',
+        });
+      } catch (err) {
+        dispatch({
+          type: 'SET_ERROR',
+          error: err instanceof Error ? err.message : 'LLM request failed.',
+        });
+      }
+    },
+    [dispatch],
+  );
+
   const cancelStream = useCallback(() => {
     abortRef.current?.abort();
   }, []);
@@ -161,6 +195,7 @@ export function useChatPipeline() {
     retakeScreenshot,
     sendMessage,
     cancelStream,
+    sendToLlm,
     viewTask,
     setUserPrompt,
   };

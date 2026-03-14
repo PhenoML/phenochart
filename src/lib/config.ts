@@ -9,6 +9,10 @@ export interface PhenoConfig {
   password: string;
   fhirProviderId: string;
   codeSystems: CodeSystem[];
+  llmApiUrl?: string;
+  llmApiKey?: string;
+  llmApiKeyHeader?: string;
+  llmModel?: string;
 }
 
 const CONFIG_KEY = 'phenoml_config';
@@ -30,6 +34,29 @@ export async function getConfig(): Promise<PhenoConfig | null> {
     password: config.password,
     fhirProviderId: config.fhirProviderId,
     codeSystems: config.codeSystems?.length ? config.codeSystems : DEFAULT_CODE_SYSTEMS,
+    ...(config.llmApiUrl && { llmApiUrl: config.llmApiUrl }),
+    ...(config.llmApiKey && { llmApiKey: config.llmApiKey }),
+    ...(config.llmApiKeyHeader && { llmApiKeyHeader: config.llmApiKeyHeader }),
+    ...(config.llmModel && { llmModel: config.llmModel }),
+  };
+}
+
+export interface LlmConfig {
+  apiUrl: string;
+  apiKey: string;
+  apiKeyHeader: string;
+  model: string;
+}
+
+export async function getLlmConfig(): Promise<LlmConfig | null> {
+  const result = await browser.storage.local.get(CONFIG_KEY);
+  const config = result[CONFIG_KEY] as Partial<PhenoConfig> | undefined;
+  if (!config?.llmApiUrl || !config?.llmApiKey || !config?.llmModel) return null;
+  return {
+    apiUrl: config.llmApiUrl,
+    apiKey: config.llmApiKey,
+    apiKeyHeader: config.llmApiKeyHeader || 'Authorization',
+    model: config.llmModel,
   };
 }
 
