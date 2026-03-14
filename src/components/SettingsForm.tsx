@@ -23,6 +23,10 @@ export function SettingsForm({ onClose }: Props) {
   const [password, setPassword] = useState('');
   const [fhirProviderId, setFhirProviderId] = useState('');
   const [codeSystems, setCodeSystems] = useState<CodeSystem[]>(DEFAULT_CODE_SYSTEMS);
+  const [llmApiUrl, setLlmApiUrl] = useState('https://evidencemd.ai/api/v1');
+  const [llmApiKey, setLlmApiKey] = useState('');
+  const [llmApiKeyHeader, setLlmApiKeyHeader] = useState('x-api-key');
+  const [llmModel, setLlmModel] = useState('evidencemd-fast');
   const [status, setStatus] = useState<'idle' | 'saved' | 'error'>('idle');
 
   useEffect(() => {
@@ -33,6 +37,10 @@ export function SettingsForm({ onClose }: Props) {
         setPassword(config.password);
         setFhirProviderId(config.fhirProviderId);
         setCodeSystems(config.codeSystems);
+        if (config.llmApiUrl) setLlmApiUrl(config.llmApiUrl);
+        if (config.llmApiKey) setLlmApiKey(config.llmApiKey);
+        if (config.llmApiKeyHeader) setLlmApiKeyHeader(config.llmApiKeyHeader);
+        if (config.llmModel) setLlmModel(config.llmModel);
       }
     });
   }, []);
@@ -46,7 +54,17 @@ export function SettingsForm({ onClose }: Props) {
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
     try {
-      await saveConfig({ instanceUrl, username, password, fhirProviderId, codeSystems });
+      await saveConfig({
+        instanceUrl,
+        username,
+        password,
+        fhirProviderId,
+        codeSystems,
+        ...(llmApiUrl.trim() && { llmApiUrl: llmApiUrl.trim() }),
+        ...(llmApiKey.trim() && { llmApiKey: llmApiKey.trim() }),
+        ...(llmApiKeyHeader.trim() && { llmApiKeyHeader: llmApiKeyHeader.trim() }),
+        ...(llmModel.trim() && { llmModel: llmModel.trim() }),
+      });
       onClose?.();
     } catch {
       setStatus('error');
@@ -162,6 +180,70 @@ export function SettingsForm({ onClose }: Props) {
               </p>
             )}
           </div>
+
+          <Divider className="my-2" />
+
+          <span className="font-body text-sm font-medium text-pheno-text-primary">
+            LLM API
+          </span>
+          <span className="font-body text-xs text-pheno-text-tertiary">
+            Connect any chat completions API (e.g. OpenAI, Anthropic, EvidenceMD). When configured, a "Get LLM Review" button appears on agent responses.
+          </span>
+
+          <label className="flex flex-col gap-1.5">
+            <span className="font-body text-xs font-medium text-pheno-text-secondary">
+              Base URL
+            </span>
+            <input
+              type="url"
+              value={llmApiUrl}
+              onChange={(e) => setLlmApiUrl(e.target.value)}
+              placeholder="https://evidencemd.ai/api/v1"
+              className="rounded-md border border-pheno-border bg-pheno-bg-panel px-3 py-2 font-mono text-sm text-pheno-text-primary placeholder:text-pheno-text-tertiary focus:outline-none focus:ring-2 focus:ring-pheno-focus-ring"
+            />
+          </label>
+
+          <label className="flex flex-col gap-1.5">
+            <span className="font-body text-xs font-medium text-pheno-text-secondary">
+              API Key
+            </span>
+            <input
+              type="password"
+              value={llmApiKey}
+              onChange={(e) => setLlmApiKey(e.target.value)}
+              placeholder="Your API key"
+              className="rounded-md border border-pheno-border bg-pheno-bg-panel px-3 py-2 font-mono text-sm text-pheno-text-primary placeholder:text-pheno-text-tertiary focus:outline-none focus:ring-2 focus:ring-pheno-focus-ring"
+            />
+          </label>
+
+          <label className="flex flex-col gap-1.5">
+            <span className="font-body text-xs font-medium text-pheno-text-secondary">
+              API Key Header
+            </span>
+            <input
+              type="text"
+              value={llmApiKeyHeader}
+              onChange={(e) => setLlmApiKeyHeader(e.target.value)}
+              placeholder="Authorization"
+              className="rounded-md border border-pheno-border bg-pheno-bg-panel px-3 py-2 font-mono text-sm text-pheno-text-primary placeholder:text-pheno-text-tertiary focus:outline-none focus:ring-2 focus:ring-pheno-focus-ring"
+            />
+            <span className="font-body text-xs text-pheno-text-tertiary">
+              Use "Authorization" for Bearer token APIs, or "x-api-key" for EvidenceMD.
+            </span>
+          </label>
+
+          <label className="flex flex-col gap-1.5">
+            <span className="font-body text-xs font-medium text-pheno-text-secondary">
+              Model
+            </span>
+            <input
+              type="text"
+              value={llmModel}
+              onChange={(e) => setLlmModel(e.target.value)}
+              placeholder="evidencemd-fast"
+              className="rounded-md border border-pheno-border bg-pheno-bg-panel px-3 py-2 font-mono text-sm text-pheno-text-primary placeholder:text-pheno-text-tertiary focus:outline-none focus:ring-2 focus:ring-pheno-focus-ring"
+            />
+          </label>
 
           <button
             type="submit"

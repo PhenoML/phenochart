@@ -7,6 +7,7 @@ export interface ChatMessage {
   timestamp: string;
   isStreaming?: boolean;
   fhirJson?: string;
+  source?: string;
 }
 
 export interface AgentInfo {
