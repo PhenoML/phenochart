@@ -4,7 +4,7 @@ import { usePageContext } from './usePageContext';
 import { captureScreenshot, streamAgentChat } from '../lib/agent';
 import type { BackgroundTask } from '../types/chat';
 
-export function useChatPipeline() {
+export  function useChatPipeline() {
   const { dispatch, selectedAgent, sessionId, isStreaming, screenshotBase64 } =
     useChat();
   const { patientId, url: pageUrl } = usePageContext();
@@ -80,75 +80,70 @@ export function useChatPipeline() {
 
   // --- Follow-up streaming (runs directly in the panel) ---
 
-  async function sendMessageInternal(
-    content: string,
-    agentId: string,
-    currentSessionId: string | null,
-  ) {
-    const userMsgId = `msg-${crypto.randomUUID()}`;
-    dispatch({ type: 'ADD_USER_MESSAGE', id: userMsgId, content });
-
-    const assistantMsgId = `msg-${crypto.randomUUID()}`;
-    dispatch({ type: 'START_STREAM', messageId: assistantMsgId });
-
-    abortRef.current = new AbortController();
-
-    try {
-      const stream = streamAgentChat({
-        agentId,
-        message: content,
-        sessionId: currentSessionId ?? undefined,
-        patientId: patientId ?? undefined,
-        signal: abortRef.current.signal,
-      });
-
-      for await (const event of stream) {
-        if (abortRef.current.signal.aborted) break;
-
-        switch (event.type) {
-          case 'message_start':
-            if (event.sessionId) {
-              dispatch({
-                type: 'SET_SESSION_ID',
-                sessionId: event.sessionId,
-              });
-            }
-            break;
-          case 'content_delta':
-            if (event.content) {
-              dispatch({
-                type: 'STREAM_DELTA',
-                messageId: assistantMsgId,
-                delta: event.content,
-              });
-            }
-            break;
-          case 'error':
-            dispatch({
-              type: 'SET_ERROR',
-              error: event.content ?? 'Stream error.',
-            });
-            return;
-        }
-      }
-
-      dispatch({ type: 'STREAM_END', messageId: assistantMsgId });
-    } catch (err) {
-      if (!abortRef.current.signal.aborted) {
-        dispatch({
-          type: 'SET_ERROR',
-          error: err instanceof Error ? err.message : 'Chat failed.',
-        });
-      }
-    }
-  }
-
   const sendMessage = useCallback(
     async (content: string) => {
       if (!selectedAgent || isStreaming) return;
-      await sendMessageInternal(content, selectedAgent.id, sessionId);
+
+      const userMsgId = `msg-${crypto.randomUUID()}`;
+      dispatch({ type: 'ADD_USER_MESSAGE', id: userMsgId, content });
+
+      const assistantMsgId = `msg-${crypto.randomUUID()}`;
+      dispatch({ type: 'START_STREAM', messageId: assistantMsgId });
+
+      abortRef.current = new AbortController();
+
+      try {
+        const stream = streamAgentChat({
+          agentId: selectedAgent.id,
+          message: content,
+          sessionId: sessionId ?? undefined,
+          patientId: patientId ?? undefined,
+          signal: abortRef.current.signal,
+        });
+
+        for await (const event of stream) {
+          if (abortRef.current.signal.aborted) break;
+
+          switch (event.type) {
+            case 'message_start':
+              if (event.sessionId) {
+                dispatch({
+                  type: 'SET_SESSION_ID',
+                  sessionId: event.sessionId,
+                });
+              }
+              break;
+            case 'content_delta':
+              if (event.content) {
+                dispatch({
+                  type: 'STREAM_DELTA',
+                  messageId: assistantMsgId,
+                  delta: event.content,
+                });
+              }
+              break;
+            case 'error':
+              dispatch({ type: 'STREAM_END', messageId: assistantMsgId });
+              dispatch({
+                type: 'SET_ERROR',
+                error: event.content ?? 'Stream error.',
+              });
+              return;
+          }
+        }
+
+        dispatch({ type: 'STREAM_END', messageId: assistantMsgId });
+      } catch (err) {
+        dispatch({ type: 'STREAM_END', messageId: assistantMsgId });
+        if (!abortRef.current.signal.aborted) {
+          dispatch({
+            type: 'SET_ERROR',
+            error: err instanceof Error ? err.message : 'Chat failed.',
+          });
+        }
+      }
     },
-    [selectedAgent, sessionId, isStreaming],
+    [selectedAgent, sessionId, isStreaming, patientId, dispatch],
   );
 
   const cancelStream = useCallback(() => {

@@ -1,35 +1,41 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { fetchAgents } from '../../lib/agent';
-import { useChat } from '../../context/ChatContext';
 import type { AgentInfo } from '../../types/chat';
 
 interface Props {
+  selectedAgent: AgentInfo | null;
+  onSelect: (agent: AgentInfo) => void;
   disabled?: boolean;
+  refreshKey?: number;
 }
 
-export function AgentPicker({ disabled }: Props) {
-  const { selectedAgent, dispatch } = useChat();
+export function AgentPicker({ selectedAgent, onSelect, disabled, refreshKey = 0 }: Props) {
   const [agents, setAgents] = useState<AgentInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
+  const onSelectRef = useRef(onSelect);
+  onSelectRef.current = onSelect;
 
   useEffect(() => {
+    setLoading(true);
+    setError(null);
     fetchAgents()
       .then((list) => {
         setAgents(list);
         if (list.length === 1 && !selectedAgent) {
-          dispatch({ type: 'SELECT_AGENT', agent: list[0] });
+          onSelectRef.current(list[0]);
         }
       })
       .catch((err) =>
         setError(err instanceof Error ? err.message : 'Failed to load agents.'),
       )
       .finally(() => setLoading(false));
-  }, []);
+  }, [retryCount, refreshKey, selectedAgent]);
 
   function handleChange(e: React.ChangeEvent<HTMLSelectElement>) {
     const agent = agents.find((a) => a.id === e.target.value);
-    if (agent) dispatch({ type: 'SELECT_AGENT', agent });
+    if (agent) onSelect(agent);
   }
 
   if (loading) {
@@ -42,7 +48,15 @@ export function AgentPicker({ disabled }: Props) {
 
   if (error) {
     return (
-      <p className="font-body text-xs text-pheno-reject">{error}</p>
+      <div className="flex flex-col gap-1.5">
+        <p className="font-body text-xs text-pheno-reject">{error}</p>
+        <button
+          onClick={() => setRetryCount((c) => c + 1)}
+          className="self-start font-body text-xs text-pheno-text-secondary underline transition-colors hover:text-pheno-text-primary"
+        >
+          Retry
+        </button>
+      </div>
     );
   }
 

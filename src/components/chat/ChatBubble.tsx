@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import type { ChatMessage } from '../../types/chat';
+import { MarkdownContent } from './MarkdownContent';
 
 interface Props {
   message: ChatMessage;
@@ -43,12 +44,32 @@ export function ChatBubble({ message }: Props) {
             </pre>
           </details>
         )}
-        <p className="whitespace-pre-wrap font-body text-sm leading-relaxed">
-          {message.content}
-          {message.isStreaming && (
-            <span className="ml-0.5 inline-block h-4 w-0.5 animate-pulse bg-pheno-accent" />
-          )}
-        </p>
+        {message.agentContext && (
+          <details className="mb-2">
+            <summary className="cursor-pointer font-body text-xs text-pheno-text-tertiary hover:text-pheno-text-secondary">
+              Agent Context
+            </summary>
+            <pre className="mt-1 max-h-64 overflow-auto rounded bg-pheno-bg-base p-2 font-mono text-[11px] leading-tight text-pheno-text-secondary whitespace-pre-wrap">
+              {message.agentContext}
+            </pre>
+          </details>
+        )}
+        {isAssistant ? (
+          <div>
+            <MarkdownContent content={message.content} />
+            {message.isStreaming && (
+              <span className="mt-1 flex gap-0.5" aria-hidden="true">
+                <span className="h-1.5 w-1.5 rounded-full bg-pheno-accent" style={{ animation: 'bounce-dot 1.2s ease-in-out infinite' }} />
+                <span className="h-1.5 w-1.5 rounded-full bg-pheno-accent" style={{ animation: 'bounce-dot 1.2s ease-in-out 0.2s infinite' }} />
+                <span className="h-1.5 w-1.5 rounded-full bg-pheno-accent" style={{ animation: 'bounce-dot 1.2s ease-in-out 0.4s infinite' }} />
+              </span>
+            )}
+          </div>
+        ) : (
+          <p className="whitespace-pre-wrap font-body text-sm leading-relaxed">
+            {message.content}
+          </p>
+        )}
         <div className="mt-1 flex items-center justify-between">
           <p className="font-mono text-[10px] text-pheno-text-tertiary">
             {new Date(message.timestamp).toLocaleTimeString([], {

@@ -1,12 +1,12 @@
 import { useEffect, useRef } from 'react';
-import { ChatBubble } from './ChatBubble';
+import { CdsChatBubble } from './CdsChatBubble';
 import type { ChatMessage } from '../../types/chat';
 
 interface Props {
   messages: ChatMessage[];
 }
 
-export function ChatMessages({ messages }: Props) {
+export function CdsChatMessages({ messages }: Props) {
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -16,7 +16,7 @@ export function ChatMessages({ messages }: Props) {
   return (
     <div className="flex flex-1 flex-col gap-3 overflow-y-auto px-4 py-4">
       {messages.map((msg) => (
-        <ChatBubble key={msg.id} message={msg} />
+        <CdsChatBubble key={msg.id} message={msg} />
       ))}
       <div ref={bottomRef} />
     </div>

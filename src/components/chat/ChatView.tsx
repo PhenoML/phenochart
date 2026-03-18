@@ -84,7 +84,10 @@ export function ChatView({ onOpenSettings }: Props) {
           </p>
 
           <div className="w-full">
-            <AgentPicker />
+            <AgentPicker
+              selectedAgent={selectedAgent}
+              onSelect={(agent) => dispatch({ type: 'SELECT_AGENT', agent })}
+            />
           </div>
 
           {selectedAgent && (
@@ -216,7 +219,7 @@ export function ChatView({ onOpenSettings }: Props) {
         </button>
       </div>
 
-      <ChatMessages />
+      <ChatMessages messages={messages} />
       {showSuggestions && (
         <SuggestedActions onSelect={sendMessage} disabled={isStreaming} />
       )}

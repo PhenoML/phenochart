@@ -1,5 +1,15 @@
 export type ChatRole = 'user' | 'assistant' | 'system';
 
+export interface ToolCall {
+  name: string;
+  args: Record<string, unknown>;
+  result: Record<string, unknown>;
+}
+
+export interface TraceData {
+  toolCalls: ToolCall[];
+}
+
 export interface ChatMessage {
   id: string;
   role: ChatRole;
@@ -7,6 +17,8 @@ export interface ChatMessage {
   timestamp: string;
   isStreaming?: boolean;
   fhirJson?: string;
+  agentContext?: string;
+  trace?: TraceData;
 }
 
 export interface AgentInfo {

@@ -3,6 +3,8 @@ import { extractFhirResources, sendAgentChat } from '../lib/agent';
 
 const ENCOUNTER_URL_RE =
   /\/Patient\/(?<patientId>[a-f0-9-]+)\/Encounter\/(?<encounterId>[a-f0-9-]+)/i;
+const PATIENT_URL_RE =
+  /\/Patient\/(?<patientId>[a-f0-9-]+)/i;
 const MEDPLUM_RE = /^https?:\/\/[^/]*\.medplum\.com\//;
 
 const STORAGE_KEY = 'phenochart_tasks';
@@ -58,7 +60,7 @@ async function runPipeline(message: {
   patientId?: string;
   sourceUrl?: string;
 }): Promise<void> {
-  const taskId = `task-${Date.now()}`;
+  const taskId = `task-${crypto.randomUUID()}`;
 
   const task: BackgroundTask = {
     id: taskId,
@@ -124,8 +126,11 @@ async function runPipeline(message: {
       message: `${message.agentName} has finished processing.`,
     });
 
-    // Badge on the extension icon
-    browser.action.setBadgeText({ text: '1' });
+    // Badge on the extension icon — show count of completed tasks
+    const completedCount = (await getTasks()).filter(
+      (t) => t.status === 'completed',
+    ).length;
+    browser.action.setBadgeText({ text: String(completedCount) });
     browser.action.setBadgeBackgroundColor({ color: '#2D5A3D' });
   } catch (err) {
     await updateTask(taskId, {
@@ -154,15 +159,16 @@ function updatePageContext(url: string | undefined) {
   }
 
   const isMedPlum = MEDPLUM_RE.test(url);
-  const match = url.match(ENCOUNTER_URL_RE);
+  const encounterMatch = url.match(ENCOUNTER_URL_RE);
+  const patientMatch = url.match(PATIENT_URL_RE);
 
   browser.storage.local.set({
     pageContext: {
       url,
-      isEncounterPage: match !== null,
+      isEncounterPage: encounterMatch !== null,
       isMedPlum,
-      patientId: match?.groups?.patientId ?? null,
-      encounterId: match?.groups?.encounterId ?? null,
+      patientId: encounterMatch?.groups?.patientId ?? patientMatch?.groups?.patientId ?? null,
+      encounterId: encounterMatch?.groups?.encounterId ?? null,
     },
   });
 }
@@ -203,13 +209,30 @@ export default defineBackground(() => {
         return true;
 
       case 'OPEN_TASK':
-        // Clear badge when user views a completed task
-        browser.action.setBadgeText({ text: '' });
-        sendResponse({ ok: true });
-        break;
+        // Decrement badge when user views a completed task
+        getTasks().then((tasks) => {
+          const remaining = tasks.filter(
+            (t) => t.status === 'completed' && t.id !== message.taskId,
+          ).length;
+          browser.action.setBadgeText({ text: remaining > 0 ? String(remaining) : '' });
+          sendResponse({ ok: true });
+        });
+        return true;
 
       case 'DISMISS_TASK':
         removeTask(message.taskId).then(
+          () => sendResponse({ ok: true }),
+          (err: unknown) => sendResponse({ error: String(err) }),
+        );
+        return true;
+
+      case 'OPEN_DEBUG_WINDOW':
+        browser.windows.create({
+          url: browser.runtime.getURL(`/debug.html?sessionId=${encodeURIComponent(message.sessionId ?? '')}`),
+          type: 'popup',
+          width: 800,
+          height: 600,
+        }).then(
           () => sendResponse({ ok: true }),
           (err: unknown) => sendResponse({ error: String(err) }),
         );
@@ -227,7 +250,7 @@ export default defineBackground(() => {
     }
   });
 
-  // Track URL when a tab navigates (full page load, not SPA)
+  // Track URL when a tab navigates (full page load)
   browser.tabs.onUpdated.addListener(async (tabId, changeInfo) => {
     if (!changeInfo.url) return;
     try {
@@ -237,6 +260,21 @@ export default defineBackground(() => {
       });
       if (activeTab?.id === tabId) {
         updatePageContext(changeInfo.url);
+      }
+    } catch {
+      // Window may have been closed
+    }
+  });
+
+  // Track SPA navigation (history.pushState / replaceState)
+  browser.webNavigation.onHistoryStateUpdated.addListener(async ({ tabId, url }) => {
+    try {
+      const [activeTab] = await browser.tabs.query({
+        active: true,
+        currentWindow: true,
+      });
+      if (activeTab?.id === tabId) {
+        updatePageContext(url);
       }
     } catch {
       // Window may have been closed
