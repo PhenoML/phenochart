@@ -26,7 +26,6 @@ export function SettingsForm({ onClose, onCreateAgent, cdsAgentIdOverride }: Pro
   const [fhirProviderId, setFhirProviderId] = useState('');
   const [codeSystems, setCodeSystems] = useState<CodeSystem[]>(DEFAULT_CODE_SYSTEMS);
   const [cdsAgentId, setCdsAgentId] = useState('');
-  const [cdsAgentPrompt, setCdsAgentPrompt] = useState('');
   const [status, setStatus] = useState<'idle' | 'saved' | 'error'>('idle');
 
   useEffect(() => {
@@ -38,7 +37,6 @@ export function SettingsForm({ onClose, onCreateAgent, cdsAgentIdOverride }: Pro
         setFhirProviderId(config.fhirProviderId);
         setCodeSystems(config.codeSystems);
         setCdsAgentId(config.cdsAgentId ?? '');
-        setCdsAgentPrompt(config.cdsAgentPrompt ?? '');
       }
     });
   }, []);
@@ -64,7 +62,6 @@ export function SettingsForm({ onClose, onCreateAgent, cdsAgentIdOverride }: Pro
         fhirProviderId,
         codeSystems,
         cdsAgentId: cdsAgentId.trim() || undefined,
-        cdsAgentPrompt: cdsAgentPrompt.trim() || undefined,
       });
       onClose?.();
     } catch {
@@ -211,19 +208,6 @@ export function SettingsForm({ onClose, onCreateAgent, cdsAgentIdOverride }: Pro
                 + Create new agent
               </button>
             )}
-          </label>
-
-          <label className="flex flex-col gap-1.5">
-            <span className="font-body text-sm font-medium text-pheno-text-primary">
-              CDS Custom Prompt
-            </span>
-            <textarea
-              value={cdsAgentPrompt}
-              onChange={(e) => setCdsAgentPrompt(e.target.value)}
-              placeholder="Optional — additional instructions (e.g., specialty focus)"
-              rows={3}
-              className="resize-none rounded-md border border-pheno-border bg-pheno-bg-panel px-3 py-2 font-body text-sm text-pheno-text-primary placeholder:text-pheno-text-tertiary focus:outline-none focus:ring-2 focus:ring-pheno-focus-ring"
-            />
           </label>
 
           <button

@@ -4,6 +4,8 @@ import { AgentPicker } from '../chat/AgentPicker';
 import { CdsChatMessages } from './CdsChatMessages';
 import { ChatInput } from '../chat/ChatInput';
 import { PhenoChartLogo } from '../PhenoChartLogo';
+import { SuggestedPrompts } from './SuggestedPrompts';
+import { CDS_SUGGESTED_PROMPTS } from '../../lib/cdsPrompt';
 
 interface Props {
   onOpenSettings: () => void;
@@ -11,8 +13,41 @@ interface Props {
 }
 
 export function CdsView({ onOpenSettings, agentRefreshKey }: Props) {
-  const { messages, isStreaming, selectedAgent, sessionId, error, dispatch } = useCds();
+  const { messages, isStreaming, selectedAgent, sessionId, phase, error, dispatch } = useCds();
   const { sendMessage, newConversation } = useCdsPipeline();
+
+  // Loading / error-during-loading state — auto-summary in progress or failed
+  if (phase === 'loading' || (phase === 'error' && messages.length <= 2 && messages.some(m => m.content === '' || m.isStreaming))) {
+    return (
+      <div className="flex flex-1 flex-col bg-pheno-bg">
+        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-pheno-border bg-pheno-bg px-3 py-2">
+          <span className="font-body text-xs font-medium text-pheno-text-secondary">
+            {selectedAgent?.name ?? 'Appointment Prep'}
+          </span>
+        </div>
+        <div className="flex flex-1 flex-col items-center justify-center gap-3">
+          {error ? (
+            <>
+              <p className="font-body text-sm text-pheno-reject">{error}</p>
+              <button
+                onClick={newConversation}
+                className="font-body text-sm text-pheno-accent underline hover:text-pheno-accent/80"
+              >
+                Retry
+              </button>
+            </>
+          ) : (
+            <>
+              <div className="h-5 w-5 animate-spin rounded-full border-2 border-pheno-accent border-t-transparent" />
+              <p className="font-body text-sm text-pheno-text-secondary">
+                Preparing appointment summary...
+              </p>
+            </>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   // Empty state — no messages yet (with agent picker)
   if (messages.length === 0) {
@@ -46,6 +81,12 @@ export function CdsView({ onOpenSettings, agentRefreshKey }: Props) {
             />
           </div>
         </div>
+
+        <SuggestedPrompts
+          prompts={CDS_SUGGESTED_PROMPTS}
+          onSelect={sendMessage}
+          disabled={!selectedAgent}
+        />
 
         <ChatInput onSend={sendMessage} disabled={!selectedAgent} />
       </div>
@@ -86,6 +127,12 @@ export function CdsView({ onOpenSettings, agentRefreshKey }: Props) {
       </div>
 
       <CdsChatMessages messages={messages} />
+
+      <SuggestedPrompts
+        prompts={CDS_SUGGESTED_PROMPTS}
+        onSelect={sendMessage}
+        disabled={isStreaming}
+      />
 
       {error && (
         <div className="border-t border-pheno-reject/20 bg-pheno-reject/5 px-4 py-2">

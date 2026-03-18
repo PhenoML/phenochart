@@ -10,7 +10,6 @@ export interface PhenoConfig {
   fhirProviderId: string;
   codeSystems: CodeSystem[];
   cdsAgentId?: string;
-  cdsAgentPrompt?: string;
 }
 
 const CONFIG_KEY = 'phenoml_config';
@@ -41,7 +40,6 @@ export async function getConfig(): Promise<PhenoConfig | null> {
     fhirProviderId: config.fhirProviderId,
     codeSystems: config.codeSystems?.length ? config.codeSystems : DEFAULT_CODE_SYSTEMS,
     cdsAgentId: config.cdsAgentId || undefined,
-    cdsAgentPrompt: config.cdsAgentPrompt || undefined,
   };
 }
 

@@ -1,6 +1,6 @@
 import type { ChatMessage, AgentInfo } from './chat';
 
-export type CdsPhase = 'idle' | 'chatting' | 'error';
+export type CdsPhase = 'idle' | 'loading' | 'chatting' | 'error';
 
 export interface CdsState {
   phase: CdsPhase;

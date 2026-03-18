@@ -1,40 +1,44 @@
+import { CDS_APPOINTMENT_PREP_PROMPT } from './cdsPrompt';
+
 export interface BuildCdsMessageOptions {
   text: string;
-  isFirstMessage: boolean;
   patientId?: string;
-  customPrompt?: string;
+  isFirstMessage?: boolean;
 }
 
 export function buildCdsMessage(options: BuildCdsMessageOptions): string {
-  const { text, isFirstMessage, patientId, customPrompt } = options;
+  const { text, patientId, isFirstMessage = false } = options;
 
-  if (!isFirstMessage) return text;
+  if (!patientId) return text;
 
-  const parts: string[] = [];
-
-  if (patientId) {
-    parts.push(`Patient ID: ${patientId}`);
-  }
-
-  if (customPrompt) {
-    parts.push(`Additional instructions: ${customPrompt}`);
-  }
-
-  parts.push(text);
-
-  return parts.join('\n\n');
-}
-
-export function buildAgentContext(patientId: string, customPrompt?: string): string {
-  const lines: string[] = [
-    `Patient/` + patientId,
+  const contextLines = [
+    '[CONTEXT]',
+    `Patient ID: Patient/${patientId}`,
+    'Task: Appointment preparation',
+    '',
+    'INSTRUCTIONS FOR THIS MESSAGE:',
+    '- You MUST call lang2fhir_and_search to fetch the relevant FHIR data BEFORE answering.',
+    '- Do NOT assume data is unavailable based on previous messages — always search again.',
+    '- If the question is about medications, search for MedicationRequest resources.',
+    '- If the question is about conditions, search for Condition resources.',
+    '- If the question is about labs, search for Observation resources.',
+    '- If the question is about allergies, search for AllergyIntolerance resources.',
+    '- If the question is about encounters/visits, search for Encounter resources.',
+    '[/CONTEXT]',
   ];
 
-  if (customPrompt) {
-    lines.push(`Custom prompt: ${customPrompt}`);
+  const contextBlock = contextLines.join('\n');
+
+  if (isFirstMessage) {
+    return `${CDS_APPOINTMENT_PREP_PROMPT}\n\n${contextBlock}\n\n${text}`;
   }
 
-  lines.push('Agent has direct FHIR access via configured provider');
+  return `${contextBlock}\n\n${text}`;
+}
 
-  return lines.join('\n');
+export function buildAgentContext(patientId: string): string {
+  return [
+    `Patient/${patientId}`,
+    'Agent has direct FHIR access via configured provider',
+  ].join('\n');
 }

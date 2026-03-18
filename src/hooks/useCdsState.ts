@@ -13,6 +13,7 @@ export type CdsAction =
   | { type: 'SET_ERROR'; error: string }
   | { type: 'CLEAR_ERROR' }
   | { type: 'SET_TRACES'; traces: Map<string, TraceData> }
+  | { type: 'AUTO_SUMMARY_START' }
   | { type: 'NEW_CONVERSATION' };
 
 export const cdsInitialState: CdsState = {
@@ -101,6 +102,9 @@ export function cdsReducer(state: CdsState, action: CdsAction): CdsState {
       });
       return { ...state, messages };
     }
+
+    case 'AUTO_SUMMARY_START':
+      return { ...state, phase: 'loading' };
 
     case 'NEW_CONVERSATION':
       return { ...cdsInitialState, selectedAgent: state.selectedAgent };

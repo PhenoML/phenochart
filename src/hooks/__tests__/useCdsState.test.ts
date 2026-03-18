@@ -75,6 +75,33 @@ describe('cdsReducer — after context simplification', () => {
   });
 });
 
+describe('cdsReducer AUTO_SUMMARY_START', () => {
+  it('should transition from idle to loading', () => {
+    const state = cdsReducer(cdsInitialState, { type: 'AUTO_SUMMARY_START' });
+    expect(state.phase).toBe('loading');
+  });
+
+  it('should not change other state fields', () => {
+    const agent = { id: 'a1', name: 'Test Agent' };
+    let state = cdsReducer(cdsInitialState, { type: 'SELECT_AGENT', agent });
+    state = cdsReducer(state, { type: 'AUTO_SUMMARY_START' });
+    expect(state.selectedAgent).toEqual(agent);
+    expect(state.messages).toHaveLength(0);
+    expect(state.isStreaming).toBe(false);
+  });
+
+  it('should transition from loading to chatting on ADD_USER_MESSAGE', () => {
+    let state = cdsReducer(cdsInitialState, { type: 'AUTO_SUMMARY_START' });
+    expect(state.phase).toBe('loading');
+    state = cdsReducer(state, {
+      type: 'ADD_USER_MESSAGE',
+      id: 'msg-1',
+      content: 'Prepare summary',
+    });
+    expect(state.phase).toBe('chatting');
+  });
+});
+
 describe('cdsReducer SET_TRACES', () => {
   it('attaches trace data to matching assistant messages by id', () => {
     const state = {

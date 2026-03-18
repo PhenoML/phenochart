@@ -122,12 +122,9 @@ export async function* streamAgentChat(
   let fhirProviderHeader: string | undefined;
   if (config.fhirProviderId) {
     const token = await getSdkToken(client);
-    console.log('[streamAgentChat] token obtained:', !!token, 'fhirProviderId:', config.fhirProviderId);
     if (token) {
       fhirProviderHeader = `${config.fhirProviderId}:${token}`;
     }
-  } else {
-    console.warn('[streamAgentChat] No fhirProviderId configured');
   }
 
   const request = {
@@ -136,8 +133,6 @@ export async function* streamAgentChat(
     ...(options.sessionId && { session_id: options.sessionId }),
     ...(fhirProviderHeader && { 'X-Phenoml-Fhir-Provider': fhirProviderHeader }),
   } as unknown as Parameters<typeof client.agent.streamChat>[0];
-
-  console.log('[streamAgentChat] request keys:', Object.keys(request), 'patientId:', options.patientId);
 
   const stream = await client.agent.streamChat(request);
 

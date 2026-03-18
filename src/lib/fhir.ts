@@ -271,12 +271,10 @@ async function fetchClinicalImpressions(
       `ClinicalImpression?encounter=Encounter/${encounterId}`,
       client,
     );
-    console.log('[PhenoChart] Raw ClinicalImpression bundle:', bundle);
     return (bundle.entry ?? [])
       .map((e) => e.resource)
       .filter((r): r is FhirClinicalImpression => !!r);
   } catch (err) {
-    console.log('[PhenoChart] ClinicalImpression fetch error:', err);
     return [];
   }
 }
@@ -503,15 +501,8 @@ export async function fetchRealEncounter(
 
   const conditions = await fetchConditions(config.fhirProviderId, conditionRefs, client);
 
-  console.log('[PhenoChart] Raw FHIR Encounter:', fhirEncounter);
-  console.log('[PhenoChart] Raw FHIR Patient:', fhirPatient);
-  console.log('[PhenoChart] ClinicalImpressions:', impressions);
-  console.log('[PhenoChart] Conditions:', conditions);
-  console.log('[PhenoChart] Patient conditions:', patientConditions);
-
   const narrative = buildNarrative(fhirEncounter, conditions, impressions);
   const encounter = mapToEncounter(fhirEncounter, fhirPatient, narrative, conditions, patientConditions);
-  console.log('[PhenoChart] Mapped Encounter:', encounter);
   return encounter;
 }
 
